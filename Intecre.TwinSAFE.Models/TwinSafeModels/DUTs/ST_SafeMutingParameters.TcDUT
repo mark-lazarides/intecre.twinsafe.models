@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.22">
+  <DUT Name="ST_SafeMutingParameters" Id="{64b3e368-ae8b-5af7-b4bc-1ecf46cbb88e}">
+    <Declaration><![CDATA[// Parameters of FB MUTING.
+TYPE ST_SafeMutingParameters :
+STRUCT
+    SequentialInputs         : BOOL;   // TRUE: single-channel muting sensors in sequence; FALSE: two two-channel sensors
+    MutingIn1MakeContact     : BOOL;
+    MutingIn2MakeContact     : BOOL;
+    MutingIn3MakeContact     : BOOL;
+    MutingIn4MakeContact     : BOOL;
+    OSSDIn1MakeContact       : BOOL;
+    OSSDIn2MakeContact       : BOOL;
+    MutingDiscrepancyTime1   : TIME;   // MutingIn1 / MutingIn2 (parallel mode)
+    MutingDiscrepancyTime2   : TIME;   // MutingIn3 / MutingIn4 (parallel mode)
+    OssdDiscrepancyTime      : TIME;   // OSSDIn1 / OSSDIn2
+    FilterTime               : TIME;   // debounce of the muting inputs (max 500 ms)
+    MaxMutingTime            : TIME;   // max duration of a muting sequence (max 10 min). T#0S disables
+    DelayTime                : TIME;   // switch-off delay of MuteDelOut (max 30 s)
+    Edm1ResetTime            : TIME;
+    Edm2ResetTime            : TIME;
+    BackwardsMode            : BOOL;   // EL6910: sequence may also run from the last sensor to the first
+    OssdCheckOptional        : BOOL;   // EL6910: protective device is not part of the sequence check
+    SafeInputsAfterDiscError : BOOL := TRUE;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

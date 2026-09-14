@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.22">
+  <DUT Name="E_SafeMutingState" Id="{02f0d096-2df2-5e90-9fe7-b20a31b73735}">
+    <Declaration><![CDATA[// FB MUTING state codes.
+{attribute 'qualified_only'}
+{attribute 'to_string'}
+TYPE E_SafeMutingState :
+(
+    Undefined    := 0,
+    Run          := 1,
+    Stop         := 2,
+    Safe         := 3,
+    Error        := 4,
+    Reset        := 5,
+    DelayOut     := 8,
+    Muting1      := 9,
+    Muting2      := 10,
+    Muting3      := 11,
+    Muting4      := 12,
+    Muting5      := 13,
+    Muting6      := 14,
+    Muting7      := 15,
+    Muting8      := 16,
+    Muting9      := 17
+) BYTE;
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

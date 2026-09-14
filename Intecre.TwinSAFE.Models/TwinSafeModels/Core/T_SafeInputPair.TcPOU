@@ -1,0 +1,66 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.22">
+  <POU Name="T_SafeInputPair" Id="{61e128bb-8a3b-58c2-8fa6-2f5d572014f5}" SpecialFunc="None">
+    <Declaration><![CDATA[// Evaluates a one- or two-channel FB input pair with optional discrepancy monitoring,
+// exactly as the TwinSAFE FBs treat their paired inputs (EStopIn1/2, MonIn1/2, Twohand1/2 ...).
+// Internal helper used by the modelled FBs.
+FUNCTION_BLOCK T_SafeInputPair
+VAR_INPUT
+    In1                      : BOOL;
+    In2                      : BOOL;
+    Active1                  : BOOL;   // channel 1 port is connected
+    Active2                  : BOOL;   // channel 2 port is connected
+    MakeContact1             : BOOL;
+    MakeContact2             : BOOL;
+    DiscrepancyTime          : TIME;   // T#0S = two channel without discrepancy monitoring
+    Monitor                  : BOOL;   // discrepancy monitoring runs only while TRUE (FB executed by a running group)
+    SafeInputsAfterDiscError : BOOL;   // both channels must be safe together before a discrepancy error can be acknowledged
+    Acknowledge              : BOOL;   // clear a discrepancy error this cycle if permitted
+END_VAR
+VAR_OUTPUT
+    Channel1           : BOOL;   // normalised: TRUE = not requesting the safe state
+    Channel2           : BOOL;
+    IsActive           : BOOL;
+    IsTwoChannel       : BOOL;
+    AllTrue            : BOOL;   // all active channels TRUE (TRUE when inactive)
+    AllFalse           : BOOL;   // all active channels FALSE (FALSE when inactive)
+    SafeStateRequested : BOOL;
+    DiscrepancyError   : BOOL;
+    AwaitingSafeInputs : BOOL;
+END_VAR
+VAR
+    _discrepancyTimer : TON;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Channel1 := F_NormaliseSafeInput(Active1, MakeContact1, In1);
+Channel2 := F_NormaliseSafeInput(Active2, MakeContact2, In2);
+IsActive := Active1 OR Active2;
+IsTwoChannel := Active1 AND Active2;
+
+IF Monitor AND IsTwoChannel AND DiscrepancyTime > T#0S THEN
+    _discrepancyTimer(IN := (Channel1 <> Channel2), PT := DiscrepancyTime);
+    IF _discrepancyTimer.Q AND NOT DiscrepancyError THEN
+        DiscrepancyError := TRUE;
+        AwaitingSafeInputs := SafeInputsAfterDiscError;
+    END_IF
+ELSE
+    _discrepancyTimer(IN := FALSE, PT := DiscrepancyTime);
+END_IF
+
+IF AwaitingSafeInputs AND NOT Channel1 AND NOT Channel2 THEN
+    AwaitingSafeInputs := FALSE;
+END_IF
+
+IF Acknowledge AND DiscrepancyError AND NOT AwaitingSafeInputs THEN
+    DiscrepancyError := FALSE;
+    _discrepancyTimer(IN := FALSE, PT := DiscrepancyTime);
+END_IF
+
+AllTrue := Channel1 AND Channel2;
+AllFalse := IsActive AND (NOT Active1 OR NOT Channel1) AND (NOT Active2 OR NOT Channel2);
+SafeStateRequested := NOT AllTrue;
+]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

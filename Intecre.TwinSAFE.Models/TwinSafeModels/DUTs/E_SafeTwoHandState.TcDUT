@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.22">
+  <DUT Name="E_SafeTwoHandState" Id="{d798f78c-c650-554e-b5e2-7ee684a03774}">
+    <Declaration><![CDATA[// FB TWOHAND state codes.
+{attribute 'qualified_only'}
+{attribute 'to_string'}
+TYPE E_SafeTwoHandState :
+(
+    Undefined    := 0,
+    Run          := 1,
+    Stop         := 2,
+    Safe         := 3,
+    Error        := 4,
+    Reset        := 5,
+    OneButton    := 11,
+    TwoButton    := 12,
+    Release      := 13
+) BYTE;
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

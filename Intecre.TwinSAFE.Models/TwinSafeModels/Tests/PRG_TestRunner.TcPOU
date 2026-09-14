@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.22">
+  <POU Name="PRG_TestRunner" Id="{a9172ccf-b9da-5d74-8bc7-a3c822c21068}" SpecialFunc="None">
+    <Declaration><![CDATA[// Runs every TcUnit test suite in the library.
+PROGRAM PRG_TestRunner
+VAR
+    safeInputPairTests    : T_SafeInputPair_Tests;
+    safeAndTests          : T_SafeAnd_Tests;
+    safeOrTests           : T_SafeOr_Tests;
+    safeXorTests          : T_SafeXor_Tests;
+    safeDecoupleTests     : T_SafeDecouple_Tests;
+    safeOpModeTests       : T_SafeOpMode_Tests;
+    safeRsTests           : T_SafeRs_Tests;
+    safeSrTests           : T_SafeSr_Tests;
+    safeTonTests          : T_SafeTon_Tests;
+    safeTofTests          : T_SafeTof_Tests;
+    safeEdmTests          : T_SafeEdm_Tests;
+    safeEStopTests        : T_SafeEStop_Tests;
+    safeMonTests          : T_SafeMon_Tests;
+    safeTwoHandTests      : T_SafeTwoHand_Tests;
+    safeMutingTests       : T_SafeMuting_Tests;
+    safeConnShutdownTests : T_SafeConnShutdown_Tests;
+    safeConnectionTests   : T_SafeConnection_Tests;
+    safeGroupTests        : T_SafeGroup_Tests;
+
+    // FBD twins of the suites above
+    safeInputPairTestsFbd    : T_SafeInputPair_Tests_FBD;
+    safeAndTestsFbd          : T_SafeAnd_Tests_FBD;
+    safeOrTestsFbd           : T_SafeOr_Tests_FBD;
+    safeXorTestsFbd          : T_SafeXor_Tests_FBD;
+    safeDecoupleTestsFbd     : T_SafeDecouple_Tests_FBD;
+    safeOpModeTestsFbd       : T_SafeOpMode_Tests_FBD;
+    safeRsTestsFbd           : T_SafeRs_Tests_FBD;
+    safeSrTestsFbd           : T_SafeSr_Tests_FBD;
+    safeTonTestsFbd          : T_SafeTon_Tests_FBD;
+    safeTofTestsFbd          : T_SafeTof_Tests_FBD;
+    safeEdmTestsFbd          : T_SafeEdm_Tests_FBD;
+    safeEStopTestsFbd        : T_SafeEStop_Tests_FBD;
+    safeMonTestsFbd          : T_SafeMon_Tests_FBD;
+    safeTwoHandTestsFbd      : T_SafeTwoHand_Tests_FBD;
+    safeMutingTestsFbd       : T_SafeMuting_Tests_FBD;
+    safeConnShutdownTestsFbd : T_SafeConnShutdown_Tests_FBD;
+    safeConnectionTestsFbd   : T_SafeConnection_Tests_FBD;
+    safeGroupTestsFbd        : T_SafeGroup_Tests_FBD;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[TcUnit.RUN();
+]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

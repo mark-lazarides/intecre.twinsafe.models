@@ -1,0 +1,13 @@
+*compileinfo
+*_Boot*
+*TrialLicense.tclrs
+*~u
+*.suo
+*.bak
+*LineIDs.dbg
+*.tmcRefac
+*.tmc
+*.tpy
+.vs/
+**/_CompileInfo/
+**/_Libraries/

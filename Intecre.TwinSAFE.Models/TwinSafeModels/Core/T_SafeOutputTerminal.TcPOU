@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.22">
+  <POU Name="T_SafeOutputTerminal" Id="{3f72bfcd-64a4-5ee0-a735-68f22bfd0b83}" SpecialFunc="None">
+    <Declaration><![CDATA[// Model of a four channel safe output terminal (EL2904) with its TwinSAFE connection.
+// SafeOut1..4 are wired from FB outputs; Channel1..4 are the simulated field outputs,
+// forced FALSE (fail-safe) unless the connection is in the Data state.
+FUNCTION_BLOCK T_SafeOutputTerminal
+VAR_INPUT
+    SafeOut1          : BOOL;
+    SafeOut2          : BOOL;
+    SafeOut3          : BOOL;
+    SafeOut4          : BOOL;
+    GroupRun          : BOOL := TRUE;
+    ErrAck            : BOOL;
+    ComErrAck         : BOOL;
+    InjectComError    : BOOL;
+    InjectModuleError : BOOL;
+    StartupTime       : TIME := T#300MS;
+    ComErrAckActive   : BOOL;
+END_VAR
+VAR_OUTPUT
+    Channel1    : BOOL;
+    Channel2    : BOOL;
+    Channel3    : BOOL;
+    Channel4    : BOOL;
+    ComError    : BOOL;
+    InStartup   : BOOL;
+    InDataState : BOOL;
+    State       : BYTE;
+    Diag        : BYTE;
+END_VAR
+VAR
+    _connection : T_SafeConnection;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[_connection(
+    GroupRun := GroupRun,
+    ErrAck := ErrAck,
+    ComErrAck := ComErrAck,
+    InjectComError := InjectComError OR InjectModuleError,
+    InjectErrorCode := SEL(InjectModuleError, E_SafeConnectionError.WatchdogElapsed, E_SafeConnectionError.OutputModuleError),
+    StartupTime := StartupTime,
+    ComErrAckActive := ComErrAckActive);
+Channel1 := SafeOut1 AND _connection.InDataState;
+Channel2 := SafeOut2 AND _connection.InDataState;
+Channel3 := SafeOut3 AND _connection.InDataState;
+Channel4 := SafeOut4 AND _connection.InDataState;
+ComError := _connection.ComError;
+InStartup := _connection.InStartup;
+InDataState := _connection.InDataState;
+State := _connection.State;
+Diag := _connection.Diag;
+]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

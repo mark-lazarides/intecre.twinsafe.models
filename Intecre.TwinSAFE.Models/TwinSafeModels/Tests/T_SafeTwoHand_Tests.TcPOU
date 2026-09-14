@@ -1,0 +1,90 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.22">
+  <POU Name="T_SafeTwoHand_Tests" Id="{780ee86f-f419-5d13-a16b-b8e1f56831d3}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK T_SafeTwoHand_Tests EXTENDS TcUnit.FB_TestSuite
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Test_BothHandsGiveOutputAndReleaseNeedsBothOff();
+Test_SecondHandWithoutFirstGivesTwoHandError();
+Test_HandDiscrepancyTimeout();
+]]></ST>
+    </Implementation>
+    <Method Name="Test_BothHandsGiveOutputAndReleaseNeedsBothOff" Id="{3e52ceae-2193-56a7-a647-eabb19a5a1ae}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_BothHandsGiveOutputAndReleaseNeedsBothOff
+VAR
+        fb : T_SafeTwoHand;
+    END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// arrange: single channel per hand
+    fb(FbRun := TRUE, Twohand1 := FALSE, Twohand3 := FALSE);
+    // act
+    fb(FbRun := TRUE, Twohand1 := TRUE, Twohand3 := FALSE);
+    AssertEquals_BYTE(Expected := TO_BYTE(E_SafeTwoHandState.OneButton), Actual := fb.State, Message := 'state 1BUTTON');
+    fb(FbRun := TRUE, Twohand1 := TRUE, Twohand3 := TRUE);
+    // assert
+    AssertEquals_BOOL(Expected := TRUE, Actual := fb.TwoHandOut, Message := 'output on with both hands');
+    fb(FbRun := TRUE, Twohand1 := FALSE, Twohand3 := TRUE);
+    AssertEquals_BOOL(Expected := FALSE, Actual := fb.TwoHandOut, Message := 'output off when one hand released');
+    AssertEquals_BYTE(Expected := TO_BYTE(E_SafeTwoHandState.Release), Actual := fb.State, Message := 'state RELEASE');
+    fb(FbRun := TRUE, Twohand1 := TRUE, Twohand3 := TRUE);
+    AssertEquals_BOOL(Expected := FALSE, Actual := fb.TwoHandOut, Message := 'no re-trigger until both hands released');
+    TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_SecondHandWithoutFirstGivesTwoHandError" Id="{eaf3a101-cfee-5bb9-a19c-129cb05e4ce8}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_SecondHandWithoutFirstGivesTwoHandError
+VAR
+        fb : T_SafeTwoHand;
+    END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// arrange
+    fb(FbRun := TRUE, Twohand1 := FALSE, Twohand3 := FALSE);
+    fb(FbRun := TRUE, Twohand1 := TRUE, Twohand3 := FALSE);
+    // act: first hand lost as the second is actuated
+    fb(FbRun := TRUE, Twohand1 := FALSE, Twohand3 := TRUE);
+    // assert
+    AssertEquals_BOOL(Expected := TRUE, Actual := fb.Error, Message := 'two-hand error');
+    AssertEquals_WORD(Expected := WORD#64, Actual := fb.Diag, Message := 'diag bit 6');
+    TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_HandDiscrepancyTimeout" Id="{2cb9a5ab-a849-526b-bb23-158d66947b1e}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_HandDiscrepancyTimeout
+VAR_INST
+        fb        : T_SafeTwoHand := (Parameters := (HandDiscrepancyTime := T#100MS));
+        state     : INT := 10;
+        waitTimer : TON;
+    END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+waitTimer();
+    CASE state OF
+        10:
+            fb(FbRun := TRUE, Twohand1 := FALSE, Twohand3 := FALSE);
+            state := 20;
+            waitTimer(IN := TRUE, PT := T#250MS);
+        20:
+            // act: only one hand for longer than the discrepancy time
+            fb(FbRun := TRUE, Twohand1 := TRUE, Twohand3 := FALSE);
+            IF NOT waitTimer.Q THEN
+                RETURN;
+            END_IF
+            waitTimer(IN := FALSE);
+            // assert
+            AssertEquals_BOOL(Expected := TRUE, Actual := fb.Error, Message := 'discrepancy error between hands');
+            AssertEquals_WORD(Expected := WORD#16#0404, Actual := fb.Diag, Message := 'diag bits 2 and 10');
+            TEST_FINISHED_NAMED(__POUNAME());
+            state := 10;
+    END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

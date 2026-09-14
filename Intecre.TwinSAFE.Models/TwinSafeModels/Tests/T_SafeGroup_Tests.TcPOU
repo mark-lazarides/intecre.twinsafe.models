@@ -1,0 +1,171 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.22">
+  <POU Name="T_SafeGroup_Tests" Id="{11130740-3f38-5e00-a057-c63e0dfd8f0e}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK T_SafeGroup_Tests EXTENDS TcUnit.FB_TestSuite
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Test_StopWhenRunFalse();
+Test_RunsFunctionBlocksWithoutConnections();
+Test_FbErrorStopsGroupAndErrAckRecovers();
+Test_ConnectionStartupAndComError();
+]]></ST>
+    </Implementation>
+    <Method Name="Test_StopWhenRunFalse" Id="{a5410bd3-0529-5beb-9401-c2cd0ed9b842}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_StopWhenRunFalse
+VAR
+        group : T_SafeGroup;
+        fb    : T_SafeAnd;
+    END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// act
+    group(Run := FALSE, AnyFbError := fb.Error, AllFbsRunning := fb.IsRunning);
+    fb(FbRun := group.InRun, AndIn1 := TRUE);
+    // assert
+    AssertEquals_BYTE(Expected := TO_BYTE(E_SafeGroupState.Stop), Actual := group.State, Message := 'group STOP');
+    AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Stop), Actual := fb.State, Message := 'FB STOP');
+    AssertEquals_BOOL(Expected := FALSE, Actual := group.InRun, Message := 'InRun off');
+    TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_RunsFunctionBlocksWithoutConnections" Id="{03db2653-44a4-5dd4-b964-aa5adadf1040}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_RunsFunctionBlocksWithoutConnections
+VAR
+        group : T_SafeGroup;
+        fb    : T_SafeAnd;
+    END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// act
+    group(Run := TRUE, AnyFbError := fb.Error, AllFbsRunning := fb.IsRunning);
+    fb(FbRun := group.InRun, AndIn1 := TRUE);
+    group(Run := TRUE, AnyFbError := fb.Error, AllFbsRunning := fb.IsRunning);
+    fb(FbRun := group.InRun, AndIn1 := TRUE);
+    // assert
+    AssertEquals_BYTE(Expected := TO_BYTE(E_SafeGroupState.Run), Actual := group.State, Message := 'group RUN');
+    AssertEquals_BOOL(Expected := TRUE, Actual := fb.AndOut, Message := 'FB executed');
+    AssertEquals_BOOL(Expected := TRUE, Actual := group.FbRun, Message := 'all FBs running');
+    TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_FbErrorStopsGroupAndErrAckRecovers" Id="{eb039375-f44c-5040-b34c-83869a563039}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_FbErrorStopsGroupAndErrAckRecovers
+VAR
+        group : T_SafeGroup;
+        eStop : T_SafeEStop;
+        andFb : T_SafeAnd;
+    END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// arrange: an AND that runs and an ESTOP that will raise an EDM error
+    group(Run := TRUE, ErrAck := FALSE, AnyFbError := eStop.Error OR andFb.Error, AllFbsRunning := eStop.IsRunning AND andFb.IsRunning);
+    eStop(FbRun := group.InRun, ErrAck := FALSE, Restart := FALSE, EDM1 := FALSE, EStopIn1 := TRUE);
+    andFb(FbRun := group.InRun, ErrAck := FALSE, AndIn1 := TRUE);
+    group(Run := TRUE, ErrAck := FALSE, AnyFbError := eStop.Error OR andFb.Error, AllFbsRunning := eStop.IsRunning AND andFb.IsRunning);
+    eStop(FbRun := group.InRun, ErrAck := FALSE, Restart := FALSE, EDM1 := FALSE, EStopIn1 := TRUE);
+    andFb(FbRun := group.InRun, ErrAck := FALSE, AndIn1 := TRUE);
+    AssertEquals_BOOL(Expected := TRUE, Actual := andFb.AndOut, Message := 'AND running before the error');
+    // act: restart with missing feedback -> FB error
+    group(Run := TRUE, ErrAck := FALSE, AnyFbError := eStop.Error OR andFb.Error, AllFbsRunning := eStop.IsRunning AND andFb.IsRunning);
+    eStop(FbRun := group.InRun, ErrAck := FALSE, Restart := TRUE, EDM1 := FALSE, EStopIn1 := TRUE);
+    andFb(FbRun := group.InRun, ErrAck := FALSE, AndIn1 := TRUE);
+    group(Run := TRUE, ErrAck := FALSE, AnyFbError := eStop.Error OR andFb.Error, AllFbsRunning := eStop.IsRunning AND andFb.IsRunning);
+    eStop(FbRun := group.InRun, ErrAck := FALSE, Restart := FALSE, EDM1 := FALSE, EStopIn1 := TRUE);
+    andFb(FbRun := group.InRun, ErrAck := FALSE, AndIn1 := TRUE);
+    // assert
+    AssertEquals_BOOL(Expected := TRUE, Actual := group.FbErr, Message := 'FbErr');
+    AssertEquals_BYTE(Expected := TO_BYTE(E_SafeGroupState.Error), Actual := group.State, Message := 'group ERROR');
+    AssertEquals_BYTE(Expected := TO_BYTE(E_SafeGroupDiag.FbError), Actual := group.Diag, Message := 'group diag FBERROR');
+    AssertEquals_BOOL(Expected := FALSE, Actual := andFb.AndOut, Message := 'other FB outputs forced safe');
+    AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Stop), Actual := andFb.State, Message := 'other FB STOP');
+    // act: ErrAck 0 -> 1 -> 0
+    group(Run := TRUE, ErrAck := TRUE, AnyFbError := eStop.Error OR andFb.Error, AllFbsRunning := eStop.IsRunning AND andFb.IsRunning);
+    eStop(FbRun := group.InRun, ErrAck := TRUE, Restart := FALSE, EDM1 := FALSE, EStopIn1 := TRUE);
+    andFb(FbRun := group.InRun, ErrAck := TRUE, AndIn1 := TRUE);
+    group(Run := TRUE, ErrAck := TRUE, AnyFbError := eStop.Error OR andFb.Error, AllFbsRunning := eStop.IsRunning AND andFb.IsRunning);
+    eStop(FbRun := group.InRun, ErrAck := TRUE, Restart := FALSE, EDM1 := FALSE, EStopIn1 := TRUE);
+    andFb(FbRun := group.InRun, ErrAck := TRUE, AndIn1 := TRUE);
+    AssertEquals_BYTE(Expected := TO_BYTE(E_SafeGroupState.Reset), Actual := group.State, Message := 'group RESET while ErrAck 1');
+    group(Run := TRUE, ErrAck := FALSE, AnyFbError := eStop.Error OR andFb.Error, AllFbsRunning := eStop.IsRunning AND andFb.IsRunning);
+    eStop(FbRun := group.InRun, ErrAck := FALSE, Restart := FALSE, EDM1 := FALSE, EStopIn1 := TRUE);
+    andFb(FbRun := group.InRun, ErrAck := FALSE, AndIn1 := TRUE);
+    group(Run := TRUE, ErrAck := FALSE, AnyFbError := eStop.Error OR andFb.Error, AllFbsRunning := eStop.IsRunning AND andFb.IsRunning);
+    eStop(FbRun := group.InRun, ErrAck := FALSE, Restart := FALSE, EDM1 := FALSE, EStopIn1 := TRUE);
+    andFb(FbRun := group.InRun, ErrAck := FALSE, AndIn1 := TRUE);
+    AssertEquals_BYTE(Expected := TO_BYTE(E_SafeGroupState.Run), Actual := group.State, Message := 'group RUN after ErrAck');
+    AssertEquals_BOOL(Expected := TRUE, Actual := andFb.AndOut, Message := 'AND running again');
+    AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Safe), Actual := eStop.State, Message := 'ESTOP back in SAFE awaiting restart');
+    TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_ConnectionStartupAndComError" Id="{cc1b8a99-b4a4-5fb2-beeb-9e4f0bff986f}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_ConnectionStartupAndComError
+VAR_INST
+        group     : T_SafeGroup;
+        terminal  : T_SafeInputTerminal;
+        state     : INT := 10;
+        waitTimer : TON;
+    END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+waitTimer();
+    CASE state OF
+        10:
+            // arrange: terminal starting up
+            terminal(GroupRun := TRUE, ErrAck := FALSE, InjectComError := FALSE, StartupTime := T#150MS);
+            group(Run := TRUE, ErrAck := FALSE, AnyComError := terminal.ComError, AnyComStartup := terminal.InStartup);
+            terminal(GroupRun := TRUE, ErrAck := FALSE, InjectComError := FALSE, StartupTime := T#150MS);
+            group(Run := TRUE, ErrAck := FALSE, AnyComError := terminal.ComError, AnyComStartup := terminal.InStartup);
+            // assert
+            AssertEquals_BYTE(Expected := TO_BYTE(E_SafeGroupState.Start), Actual := group.State, Message := 'group START while the connection starts up');
+            AssertEquals_BOOL(Expected := TRUE, Actual := group.ComStartup, Message := 'ComStartup');
+            state := 20;
+            waitTimer(IN := TRUE, PT := T#400MS);
+        20:
+            terminal(GroupRun := TRUE, ErrAck := FALSE, InjectComError := FALSE, StartupTime := T#150MS);
+            group(Run := TRUE, ErrAck := FALSE, AnyComError := terminal.ComError, AnyComStartup := terminal.InStartup);
+            IF NOT waitTimer.Q THEN
+                RETURN;
+            END_IF
+            waitTimer(IN := FALSE);
+            AssertEquals_BYTE(Expected := TO_BYTE(E_SafeGroupState.Run), Actual := group.State, Message := 'group RUN once the connection is in Data');
+            // act: communication error
+            terminal(GroupRun := TRUE, ErrAck := FALSE, InjectComError := TRUE, StartupTime := T#150MS);
+            group(Run := TRUE, ErrAck := FALSE, AnyComError := terminal.ComError, AnyComStartup := terminal.InStartup);
+            terminal(GroupRun := TRUE, ErrAck := FALSE, InjectComError := FALSE, StartupTime := T#150MS);
+            group(Run := TRUE, ErrAck := FALSE, AnyComError := terminal.ComError, AnyComStartup := terminal.InStartup);
+            AssertEquals_BOOL(Expected := TRUE, Actual := group.ComErr, Message := 'ComErr');
+            AssertEquals_BYTE(Expected := TO_BYTE(E_SafeGroupState.Error), Actual := group.State, Message := 'group ERROR');
+            terminal(GroupRun := TRUE, ErrAck := TRUE, InjectComError := FALSE, StartupTime := T#150MS);
+            group(Run := TRUE, ErrAck := TRUE, AnyComError := terminal.ComError, AnyComStartup := terminal.InStartup);
+            terminal(GroupRun := TRUE, ErrAck := TRUE, InjectComError := FALSE, StartupTime := T#150MS);
+            group(Run := TRUE, ErrAck := TRUE, AnyComError := terminal.ComError, AnyComStartup := terminal.InStartup);
+            AssertEquals_BYTE(Expected := TO_BYTE(E_SafeGroupState.Reset), Actual := group.State, Message := 'group RESET');
+            terminal(GroupRun := TRUE, ErrAck := FALSE, InjectComError := FALSE, StartupTime := T#150MS);
+            group(Run := TRUE, ErrAck := FALSE, AnyComError := terminal.ComError, AnyComStartup := terminal.InStartup);
+            AssertEquals_BYTE(Expected := TO_BYTE(E_SafeGroupState.Start), Actual := group.State, Message := 'group START again after ack');
+            state := 30;
+            waitTimer(IN := TRUE, PT := T#400MS);
+        30:
+            terminal(GroupRun := TRUE, ErrAck := FALSE, InjectComError := FALSE, StartupTime := T#150MS);
+            group(Run := TRUE, ErrAck := FALSE, AnyComError := terminal.ComError, AnyComStartup := terminal.InStartup);
+            IF NOT waitTimer.Q THEN
+                RETURN;
+            END_IF
+            waitTimer(IN := FALSE);
+            AssertEquals_BYTE(Expected := TO_BYTE(E_SafeGroupState.Run), Actual := group.State, Message := 'group RUN after reconnection');
+            TEST_FINISHED_NAMED(__POUNAME());
+            state := 10;
+    END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

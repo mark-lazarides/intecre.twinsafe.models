@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.22">
+  <POU Name="T_SafeRs" Id="{e620cd2a-846a-5dd3-8008-ec245bc27373}" SpecialFunc="None">
+    <Declaration><![CDATA[// Model of the TwinSAFE FB RS (reset dominant latch).
+{attribute 'reflection'}
+FUNCTION_BLOCK T_SafeRs EXTENDS T_SafeFunctionBlockBase
+VAR_INPUT
+    Set        : BOOL;
+    Reset      : BOOL;
+    Parameters : ST_SafeLatchParameters;
+END_VAR
+VAR_OUTPUT
+    RsOut : BOOL;
+END_VAR
+VAR
+    {attribute 'is_connected' := 'Set'}
+    _setConnected          : BOOL;
+    {attribute 'is_connected' := 'Reset'}
+    _resetConnected        : BOOL;
+    _state : E_SafeLatchState := E_SafeLatchState.Stop;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[SUPER^();
+]]></ST>
+    </Implementation>
+    <Method Name="Process" Id="{84936541-d311-5217-9cf7-620653b0d636}">
+      <Declaration><![CDATA[METHOD PROTECTED Process
+VAR
+    setActive   : BOOL;
+    resetActive : BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[setActive := F_SafeInputValue(_setConnected, Parameters.SetMakeContact, Set);
+resetActive := F_SafeInputValue(_resetConnected, Parameters.ResetMakeContact, Reset);
+
+IF NOT FbRun THEN
+    _state := E_SafeLatchState.Stop;
+ELSE
+    IF _state = E_SafeLatchState.Stop THEN
+        _state := E_SafeLatchState.Safe;
+    END_IF
+    IF resetActive THEN
+        _state := E_SafeLatchState.Safe;
+    ELSIF setActive THEN
+        _state := E_SafeLatchState.Set;
+    END_IF
+END_IF
+
+RsOut := (_state = E_SafeLatchState.Set);
+Error := FALSE;
+Diag := 0;
+State := TO_BYTE(_state);
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

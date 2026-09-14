@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.22">
+  <DUT Name="ST_SafeMonParameters" Id="{b7ad29f3-c8fa-5349-9b6f-af6e223c3780}">
+    <Declaration><![CDATA[// Parameters of FB MON. Manual restart is active when the Restart port is connected.
+TYPE ST_SafeMonParameters :
+STRUCT
+    MonIn1MakeContact        : BOOL;
+    MonIn2MakeContact        : BOOL;
+    MonIn3MakeContact        : BOOL;
+    MonIn4MakeContact        : BOOL;
+    Secure1MakeContact       : BOOL;
+    Secure2MakeContact       : BOOL;
+    DiscrepancyTime1         : TIME;   // MonIn1 / MonIn2
+    DiscrepancyTime2         : TIME;   // MonIn3 / MonIn4
+    SecureDiscrepancyTime    : TIME;   // Secure1 / Secure2
+    DelayTime                : TIME;   // switch-off delay of MonDelOut
+    Edm1ResetTime            : TIME;
+    Edm2ResetTime            : TIME;
+    ManualFunctionTest       : BOOL;   // every connected MonIn pair must request the safe state once after start
+    SafeInputsAfterDiscError : BOOL := TRUE;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

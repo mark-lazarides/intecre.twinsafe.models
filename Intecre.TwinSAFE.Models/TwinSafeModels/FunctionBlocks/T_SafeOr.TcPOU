@@ -1,0 +1,78 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.22">
+  <POU Name="T_SafeOr" Id="{172c71ab-ec3d-5ccc-91c3-374336b4d74f}" SpecialFunc="None">
+    <Declaration><![CDATA[// Model of the TwinSAFE FB OR. Connected inputs are active.
+{attribute 'reflection'}
+FUNCTION_BLOCK T_SafeOr EXTENDS T_SafeFunctionBlockBase
+VAR_INPUT
+    OrIn1      : BOOL;
+    OrIn2      : BOOL;
+    OrIn3      : BOOL;
+    OrIn4      : BOOL;
+    OrIn5      : BOOL;
+    OrIn6      : BOOL;
+    OrIn7      : BOOL;
+    OrIn8      : BOOL;
+    Parameters : ST_SafeLogicParameters;
+END_VAR
+VAR_OUTPUT
+    OrOut : BOOL;
+END_VAR
+VAR
+    {attribute 'is_connected' := 'OrIn1'}
+    _orIn1Connected        : BOOL;
+    {attribute 'is_connected' := 'OrIn2'}
+    _orIn2Connected        : BOOL;
+    {attribute 'is_connected' := 'OrIn3'}
+    _orIn3Connected        : BOOL;
+    {attribute 'is_connected' := 'OrIn4'}
+    _orIn4Connected        : BOOL;
+    {attribute 'is_connected' := 'OrIn5'}
+    _orIn5Connected        : BOOL;
+    {attribute 'is_connected' := 'OrIn6'}
+    _orIn6Connected        : BOOL;
+    {attribute 'is_connected' := 'OrIn7'}
+    _orIn7Connected        : BOOL;
+    {attribute 'is_connected' := 'OrIn8'}
+    _orIn8Connected        : BOOL;
+    _state : E_SafeFbState := E_SafeFbState.Stop;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[SUPER^();
+]]></ST>
+    </Implementation>
+    <Method Name="Process" Id="{6d72b5e1-d040-529f-8c8f-d3c7e840ffaf}">
+      <Declaration><![CDATA[METHOD PROTECTED Process
+VAR
+    result : BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[result := FALSE;
+result := result OR F_SafeInputValue(_orIn1Connected, Parameters.In1MakeContact, OrIn1);
+result := result OR F_SafeInputValue(_orIn2Connected, Parameters.In2MakeContact, OrIn2);
+result := result OR F_SafeInputValue(_orIn3Connected, Parameters.In3MakeContact, OrIn3);
+result := result OR F_SafeInputValue(_orIn4Connected, Parameters.In4MakeContact, OrIn4);
+result := result OR F_SafeInputValue(_orIn5Connected, Parameters.In5MakeContact, OrIn5);
+result := result OR F_SafeInputValue(_orIn6Connected, Parameters.In6MakeContact, OrIn6);
+result := result OR F_SafeInputValue(_orIn7Connected, Parameters.In7MakeContact, OrIn7);
+result := result OR F_SafeInputValue(_orIn8Connected, Parameters.In8MakeContact, OrIn8);
+
+IF NOT FbRun THEN
+    _state := E_SafeFbState.Stop;
+ELSIF result THEN
+    _state := E_SafeFbState.Run;
+ELSE
+    _state := E_SafeFbState.Safe;
+END_IF
+
+OrOut := (_state = E_SafeFbState.Run);
+Error := FALSE;
+Diag := 0;
+State := TO_BYTE(_state);
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

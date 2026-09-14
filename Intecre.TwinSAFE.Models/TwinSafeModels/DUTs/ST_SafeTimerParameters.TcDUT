@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.22">
+  <DUT Name="ST_SafeTimerParameters" Id="{6ccc2540-9b4a-56c2-8b2e-2d65f34748b1}">
+    <Declaration><![CDATA[// Parameters of FB TON and FB TOF.
+TYPE ST_SafeTimerParameters :
+STRUCT
+    MakeContact : BOOL;
+    DelayTime   : TIME;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

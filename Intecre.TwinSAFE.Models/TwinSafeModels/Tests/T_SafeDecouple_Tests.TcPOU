@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.22">
+  <POU Name="T_SafeDecouple_Tests" Id="{53c8a3f7-118d-5f6f-8073-5da89a3cdba1}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK T_SafeDecouple_Tests EXTENDS TcUnit.FB_TestSuite
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Test_InputsLoopedToOutputsOnlyWhenRunning();
+]]></ST>
+    </Implementation>
+    <Method Name="Test_InputsLoopedToOutputsOnlyWhenRunning" Id="{a98a7e9d-5d5b-57af-a460-345e5764e19b}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_InputsLoopedToOutputsOnlyWhenRunning
+VAR
+        fb : T_SafeDecouple;
+    END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// act
+    fb(FbRun := TRUE, DecIn3 := TRUE);
+    // assert
+    AssertEquals_BOOL(Expected := TRUE, Actual := fb.DecOut3, Message := 'input looped to output');
+    fb(FbRun := FALSE, DecIn3 := TRUE);
+    AssertEquals_BOOL(Expected := FALSE, Actual := fb.DecOut3, Message := 'output off while stopped');
+    TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

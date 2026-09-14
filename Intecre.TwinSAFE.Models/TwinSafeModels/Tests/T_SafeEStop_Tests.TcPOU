@@ -1,0 +1,236 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.22">
+  <POU Name="T_SafeEStop_Tests" Id="{f7b45b10-ca6d-5f9c-8824-f1dd374b5b8d}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK T_SafeEStop_Tests EXTENDS TcUnit.FB_TestSuite
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Test_OutputsOffWhenStopped();
+Test_StartupRequiresRestartSequence();
+Test_EStopRequestSwitchesOutputsOffAndBlocksRestart();
+Test_MakeContactInputRequestsSafeStateOnOne();
+Test_EdmErrorAtRestartAndAcknowledge();
+Test_RestartHeldBeforeEStopGivesEdmError();
+Test_DelayedOutput();
+Test_DiscrepancyErrorNeedsSafeInputsBeforeAck();
+]]></ST>
+    </Implementation>
+    <Method Name="Test_OutputsOffWhenStopped" Id="{ba425ead-d0ff-5f81-99a6-9e3045c6055e}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_OutputsOffWhenStopped
+VAR
+        fb : T_SafeEStop;
+    END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// act
+    fb(FbRun := FALSE, EStopIn1 := TRUE);
+    // assert
+    AssertEquals_BOOL(Expected := FALSE, Actual := fb.EStopOut, Message := 'no output while stopped');
+    AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Stop), Actual := fb.State, Message := 'state STOP');
+    TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_StartupRequiresRestartSequence" Id="{82702c52-32df-5a69-9587-ed8789dd778b}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_StartupRequiresRestartSequence
+VAR
+        fb : T_SafeEStop;
+    END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// act: two channel e-stop released, no restart yet
+    fb(FbRun := TRUE, Restart := FALSE, EStopIn1 := TRUE, EStopIn2 := TRUE);
+    fb(FbRun := TRUE, Restart := FALSE, EStopIn1 := TRUE, EStopIn2 := TRUE);
+    // assert
+    AssertEquals_BOOL(Expected := FALSE, Actual := fb.EStopOut, Message := 'no output before restart');
+    AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Safe), Actual := fb.State, Message := 'state SAFE waiting for restart');
+    fb(FbRun := TRUE, Restart := TRUE, EStopIn1 := TRUE, EStopIn2 := TRUE);
+    AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Start), Actual := fb.State, Message := 'state START while restart held');
+    AssertEquals_BOOL(Expected := FALSE, Actual := fb.EStopOut, Message := 'no output while restart held');
+    fb(FbRun := TRUE, Restart := FALSE, EStopIn1 := TRUE, EStopIn2 := TRUE);
+    AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Run), Actual := fb.State, Message := 'state RUN after falling edge');
+    AssertEquals_BOOL(Expected := TRUE, Actual := fb.EStopOut, Message := 'EStopOut on');
+    AssertEquals_BOOL(Expected := TRUE, Actual := fb.EStopDelOut, Message := 'EStopDelOut on');
+    TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_EStopRequestSwitchesOutputsOffAndBlocksRestart" Id="{f4d81f33-322a-5b00-8856-d54f5abeed57}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_EStopRequestSwitchesOutputsOffAndBlocksRestart
+VAR
+        fb : T_SafeEStop;
+    END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// arrange: running
+    fb(FbRun := TRUE, Restart := FALSE, EStopIn1 := TRUE, EStopIn2 := TRUE);
+    fb(FbRun := TRUE, Restart := TRUE, EStopIn1 := TRUE, EStopIn2 := TRUE);
+    fb(FbRun := TRUE, Restart := FALSE, EStopIn1 := TRUE, EStopIn2 := TRUE);
+    // act: press the e-stop
+    fb(FbRun := TRUE, Restart := FALSE, EStopIn1 := FALSE, EStopIn2 := FALSE);
+    // assert
+    AssertEquals_BOOL(Expected := FALSE, Actual := fb.EStopOut, Message := 'EStopOut off');
+    AssertEquals_BOOL(Expected := FALSE, Actual := fb.EStopDelOut, Message := 'EStopDelOut off without delay time');
+    AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Safe), Actual := fb.State, Message := 'state SAFE');
+    // act: restart while still pressed
+    fb(FbRun := TRUE, Restart := TRUE, EStopIn1 := FALSE, EStopIn2 := FALSE);
+    fb(FbRun := TRUE, Restart := FALSE, EStopIn1 := FALSE, EStopIn2 := FALSE);
+    AssertEquals_BOOL(Expected := FALSE, Actual := fb.EStopOut, Message := 'restart ignored while the e-stop is pressed');
+    TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_MakeContactInputRequestsSafeStateOnOne" Id="{8d88d5f2-6834-5d9f-bc0a-2795143228fd}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_MakeContactInputRequestsSafeStateOnOne
+VAR
+        fb : T_SafeEStop := (Parameters := (EStopIn1MakeContact := TRUE));
+    END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// arrange: single channel make contact, released (0), restarted
+    fb(FbRun := TRUE, Restart := FALSE, EStopIn1 := FALSE);
+    fb(FbRun := TRUE, Restart := TRUE, EStopIn1 := FALSE);
+    fb(FbRun := TRUE, Restart := FALSE, EStopIn1 := FALSE);
+    AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Run), Actual := fb.State, Message := 'running with make contact released');
+    // act
+    fb(FbRun := TRUE, Restart := FALSE, EStopIn1 := TRUE);
+    // assert
+    AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Safe), Actual := fb.State, Message := 'make contact at 1 requests the safe state');
+    TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_EdmErrorAtRestartAndAcknowledge" Id="{41f0a25e-bee7-546e-bcba-5dff3df6601c}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_EdmErrorAtRestartAndAcknowledge
+VAR
+        fb : T_SafeEStop;
+    END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// arrange: EDM1 connected but contactor not released
+    fb(FbRun := TRUE, ErrAck := FALSE, Restart := FALSE, EDM1 := FALSE, EStopIn1 := TRUE);
+    // act
+    fb(FbRun := TRUE, ErrAck := FALSE, Restart := TRUE, EDM1 := FALSE, EStopIn1 := TRUE);
+    // assert
+    AssertEquals_BOOL(Expected := TRUE, Actual := fb.Error, Message := 'EDM error when feedback missing at restart');
+    AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Error), Actual := fb.State, Message := 'state ERROR');
+    AssertEquals_WORD(Expected := WORD#16, Actual := fb.Diag, Message := 'diag bit 4 EDM1');
+    // act: group stops the FB, then ErrAck sequence
+    fb(FbRun := FALSE, ErrAck := FALSE, Restart := FALSE, EDM1 := FALSE, EStopIn1 := TRUE);
+    AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Error), Actual := fb.State, Message := 'error is held while the group is stopped');
+    fb(FbRun := FALSE, ErrAck := TRUE, Restart := FALSE, EDM1 := FALSE, EStopIn1 := TRUE);
+    AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Reset), Actual := fb.State, Message := 'state RESET while ErrAck is 1');
+    AssertEquals_BOOL(Expected := FALSE, Actual := fb.Error, Message := 'Error output off in RESET');
+    fb(FbRun := TRUE, ErrAck := FALSE, Restart := FALSE, EDM1 := FALSE, EStopIn1 := TRUE);
+    AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Safe), Actual := fb.State, Message := 'state SAFE after ErrAck falling edge');
+    TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_RestartHeldBeforeEStopGivesEdmError" Id="{f7df0259-728d-51ca-a2ea-62aef7cf41e8}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_RestartHeldBeforeEStopGivesEdmError
+VAR
+        fb : T_SafeEStop;
+    END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// arrange: running with EDM feedback (contactors pulled in -> EDM1 = 0)
+    fb(FbRun := TRUE, Restart := FALSE, EDM1 := TRUE, EStopIn1 := TRUE);
+    fb(FbRun := TRUE, Restart := TRUE, EDM1 := TRUE, EStopIn1 := TRUE);
+    fb(FbRun := TRUE, Restart := FALSE, EDM1 := TRUE, EStopIn1 := TRUE);
+    fb(FbRun := TRUE, Restart := FALSE, EDM1 := FALSE, EStopIn1 := TRUE);
+    // act: restart held, then e-stop pressed before the contactors drop out
+    fb(FbRun := TRUE, Restart := TRUE, EDM1 := FALSE, EStopIn1 := FALSE);
+    // assert
+    AssertEquals_BOOL(Expected := TRUE, Actual := fb.Error, Message := 'immediate EDM check with restart held (sample 3)');
+    TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_DelayedOutput" Id="{7cc00979-ab9e-5fac-8b44-5dd874bd27b8}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_DelayedOutput
+VAR_INST
+        fb        : T_SafeEStop := (Parameters := (DelayTime := T#150MS));
+        state     : INT := 10;
+        waitTimer : TON;
+    END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+waitTimer();
+    CASE state OF
+        10:
+            // arrange: running
+            fb(FbRun := TRUE, Restart := FALSE, EStopIn1 := TRUE);
+            fb(FbRun := TRUE, Restart := TRUE, EStopIn1 := TRUE);
+            fb(FbRun := TRUE, Restart := FALSE, EStopIn1 := TRUE);
+            // act
+            fb(FbRun := TRUE, Restart := FALSE, EStopIn1 := FALSE);
+            // assert
+            AssertEquals_BOOL(Expected := FALSE, Actual := fb.EStopOut, Message := 'EStopOut off immediately');
+            AssertEquals_BOOL(Expected := TRUE, Actual := fb.EStopDelOut, Message := 'EStopDelOut still on');
+            AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.DelayOut), Actual := fb.State, Message := 'state DELAYOUT');
+            state := 20;
+            waitTimer(IN := TRUE, PT := T#300MS);
+        20:
+            fb(FbRun := TRUE, Restart := FALSE, EStopIn1 := FALSE);
+            IF NOT waitTimer.Q THEN
+                RETURN;
+            END_IF
+            waitTimer(IN := FALSE);
+            // assert
+            AssertEquals_BOOL(Expected := FALSE, Actual := fb.EStopDelOut, Message := 'EStopDelOut off after the delay');
+            AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Safe), Actual := fb.State, Message := 'state SAFE');
+            TEST_FINISHED_NAMED(__POUNAME());
+            state := 10;
+    END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_DiscrepancyErrorNeedsSafeInputsBeforeAck" Id="{5802aa49-9f53-5f2b-a263-00a6ed37d37f}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_DiscrepancyErrorNeedsSafeInputsBeforeAck
+VAR_INST
+        fb        : T_SafeEStop := (Parameters := (DiscrepancyTime1 := T#100MS));
+        state     : INT := 10;
+        waitTimer : TON;
+    END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+waitTimer();
+    CASE state OF
+        10:
+            // arrange: running
+            fb(FbRun := TRUE, ErrAck := FALSE, Restart := FALSE, EStopIn1 := TRUE, EStopIn2 := TRUE);
+            fb(FbRun := TRUE, ErrAck := FALSE, Restart := TRUE, EStopIn1 := TRUE, EStopIn2 := TRUE);
+            fb(FbRun := TRUE, ErrAck := FALSE, Restart := FALSE, EStopIn1 := TRUE, EStopIn2 := TRUE);
+            state := 20;
+            waitTimer(IN := TRUE, PT := T#250MS);
+        20:
+            // act: only one channel opens
+            fb(FbRun := TRUE, ErrAck := FALSE, Restart := FALSE, EStopIn1 := FALSE, EStopIn2 := TRUE);
+            IF NOT waitTimer.Q THEN
+                RETURN;
+            END_IF
+            waitTimer(IN := FALSE);
+            // assert
+            AssertEquals_BOOL(Expected := TRUE, Actual := fb.Error, Message := 'discrepancy error');
+            AssertEquals_WORD(Expected := WORD#16#0101, Actual := fb.Diag, Message := 'diag bits 0 and 8');
+            // act: acknowledge while channel 2 is still closed
+            fb(FbRun := FALSE, ErrAck := TRUE, Restart := FALSE, EStopIn1 := FALSE, EStopIn2 := TRUE);
+            AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Error), Actual := fb.State, Message := 'ack refused until both channels safe');
+            fb(FbRun := FALSE, ErrAck := TRUE, Restart := FALSE, EStopIn1 := FALSE, EStopIn2 := FALSE);
+            AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Reset), Actual := fb.State, Message := 'RESET once both channels were safe');
+            TEST_FINISHED_NAMED(__POUNAME());
+            state := 10;
+    END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

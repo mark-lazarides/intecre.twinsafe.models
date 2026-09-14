@@ -1,0 +1,96 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.22">
+  <POU Name="T_SafeMon_Tests" Id="{f06f20f6-051a-5cea-acd9-faf06a097146}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK T_SafeMon_Tests EXTENDS TcUnit.FB_TestSuite
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Test_AutomaticRestartWhenGuardClosed();
+Test_SecureInputBypassesGuard();
+Test_ManualFunctionTestRequiresGuardOpenedOnce();
+Test_EdmFaultWithoutManualRestartStaysSafe();
+]]></ST>
+    </Implementation>
+    <Method Name="Test_AutomaticRestartWhenGuardClosed" Id="{7f7524c0-8cb8-53ff-8d3a-e39d36e3ba99}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_AutomaticRestartWhenGuardClosed
+VAR
+        fb : T_SafeMon;
+    END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// act: Restart not connected -> automatic restart; guard open
+    fb(FbRun := TRUE, MonIn1 := FALSE);
+    fb(FbRun := TRUE, MonIn1 := FALSE);
+    // assert
+    AssertEquals_BOOL(Expected := FALSE, Actual := fb.MonOut, Message := 'output off with guard open');
+    fb(FbRun := TRUE, MonIn1 := TRUE);
+    AssertEquals_BOOL(Expected := TRUE, Actual := fb.MonOut, Message := 'automatic restart with guard closed');
+    AssertEquals_BYTE(Expected := TO_BYTE(E_SafeMonState.Run), Actual := fb.State, Message := 'state RUN');
+    TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_SecureInputBypassesGuard" Id="{76d3bf1a-d2bf-5feb-a26a-e6cd0e1dd4d6}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_SecureInputBypassesGuard
+VAR
+        fb : T_SafeMon;
+    END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// act: guard open, bypass active
+    fb(FbRun := TRUE, MonIn1 := FALSE, Secure1 := TRUE);
+    fb(FbRun := TRUE, MonIn1 := FALSE, Secure1 := TRUE);
+    // assert
+    AssertEquals_BOOL(Expected := TRUE, Actual := fb.MonOut, Message := 'guard ignored while Secure is 1');
+    fb(FbRun := TRUE, MonIn1 := FALSE, Secure1 := FALSE);
+    AssertEquals_BOOL(Expected := FALSE, Actual := fb.MonOut, Message := 'guard monitored again when Secure is 0');
+    TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_ManualFunctionTestRequiresGuardOpenedOnce" Id="{cf8948bc-d028-54a1-9163-5666b9b64e98}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_ManualFunctionTestRequiresGuardOpenedOnce
+VAR
+        fb : T_SafeMon := (Parameters := (ManualFunctionTest := TRUE));
+    END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// arrange: Restart connected (manual restart), guard closed from the start
+    fb(FbRun := TRUE, Restart := FALSE, MonIn1 := TRUE);
+    AssertEquals_BYTE(Expected := TO_BYTE(E_SafeMonState.FuncTest), Actual := fb.State, Message := 'state FUNCTEST after start');
+    // act: restart without testing the guard
+    fb(FbRun := TRUE, Restart := TRUE, MonIn1 := TRUE);
+    fb(FbRun := TRUE, Restart := FALSE, MonIn1 := TRUE);
+    AssertEquals_BOOL(Expected := FALSE, Actual := fb.MonOut, Message := 'restart ignored before the function test');
+    // act: open and close the guard, then restart
+    fb(FbRun := TRUE, Restart := FALSE, MonIn1 := FALSE);
+    fb(FbRun := TRUE, Restart := FALSE, MonIn1 := TRUE);
+    fb(FbRun := TRUE, Restart := TRUE, MonIn1 := TRUE);
+    fb(FbRun := TRUE, Restart := FALSE, MonIn1 := TRUE);
+    AssertEquals_BOOL(Expected := TRUE, Actual := fb.MonOut, Message := 'output on after function test and restart');
+    TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_EdmFaultWithoutManualRestartStaysSafe" Id="{35b5b4d2-365a-5ee9-8d58-df81715760f5}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_EdmFaultWithoutManualRestartStaysSafe
+VAR
+        fb : T_SafeMon;
+    END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// act: EDM1 connected and FALSE, no Restart connected
+    fb(FbRun := TRUE, EDM1 := FALSE, MonIn1 := TRUE);
+    fb(FbRun := TRUE, EDM1 := FALSE, MonIn1 := TRUE);
+    // assert
+    AssertEquals_BOOL(Expected := FALSE, Actual := fb.Error, Message := 'no EDM error without manual restart');
+    AssertEquals_BYTE(Expected := TO_BYTE(E_SafeMonState.Safe), Actual := fb.State, Message := 'FB remains SAFE');
+    TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

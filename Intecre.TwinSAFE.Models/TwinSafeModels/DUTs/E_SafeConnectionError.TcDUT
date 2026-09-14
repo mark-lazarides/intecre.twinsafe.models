@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.22">
+  <DUT Name="E_SafeConnectionError" Id="{2c60a919-ed76-538f-ac21-c17b3e076124}">
+    <Declaration><![CDATA[// TwinSAFE connection error codes (low nibble of the connection Diag byte).
+{attribute 'qualified_only'}
+{attribute 'to_string'}
+TYPE E_SafeConnectionError :
+(
+    NoError      := 0,
+    InvalidCommand := 1,
+    UnknownCommand := 2,
+    InvalidConnectionId := 3,
+    InvalidCrc   := 4,
+    WatchdogElapsed := 5,
+    InvalidFsoeAddress := 6,
+    InvalidData  := 7,
+    InvalidComParameterLength := 8,
+    InvalidComParameters := 9,
+    InvalidUserParameterLength := 10,
+    InvalidUserParameters := 11,
+    FsoeMasterReset := 12,
+    SlaveModuleError := 13,
+    OutputModuleError := 14,
+    SlaveNotStarted := 15
+) BYTE;
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

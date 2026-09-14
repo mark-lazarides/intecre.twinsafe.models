@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.22">
+  <POU Name="T_SafeRs_Tests" Id="{292f3b71-3d46-58d8-a889-510872024b69}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK T_SafeRs_Tests EXTENDS TcUnit.FB_TestSuite
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Test_ResetDominantLatch();
+]]></ST>
+    </Implementation>
+    <Method Name="Test_ResetDominantLatch" Id="{d79316f9-bebc-55fe-a01d-0952a8c2e902}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_ResetDominantLatch
+VAR
+        fb : T_SafeRs;
+    END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// act / assert
+    fb(FbRun := TRUE, Set := TRUE, Reset := FALSE);
+    AssertEquals_BOOL(Expected := TRUE, Actual := fb.RsOut, Message := 'set');
+    fb(FbRun := TRUE, Set := FALSE, Reset := FALSE);
+    AssertEquals_BOOL(Expected := TRUE, Actual := fb.RsOut, Message := 'held');
+    fb(FbRun := TRUE, Set := TRUE, Reset := TRUE);
+    AssertEquals_BOOL(Expected := FALSE, Actual := fb.RsOut, Message := 'reset dominant');
+    TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

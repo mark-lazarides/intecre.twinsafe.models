@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.22">
+  <POU Name="T_SafeInputTerminal" Id="{39de9fd9-0e7b-54e9-be56-f19188e443a5}" SpecialFunc="None">
+    <Declaration><![CDATA[// Model of a four channel safe input terminal (EL1904) with its TwinSAFE connection.
+// Channel1..4 are the simulated field signals; SafeIn1..4 are what the TwinSAFE logic sees:
+// forced FALSE (fail-safe) unless the connection is in the Data state.
+FUNCTION_BLOCK T_SafeInputTerminal
+VAR_INPUT
+    Channel1          : BOOL;
+    Channel2          : BOOL;
+    Channel3          : BOOL;
+    Channel4          : BOOL;
+    GroupRun          : BOOL := TRUE;   // the group Run input
+    ErrAck            : BOOL;           // the group ErrAck input
+    ComErrAck         : BOOL;
+    InjectComError    : BOOL;           // rising edge simulates an FSoE communication error
+    InjectModuleError : BOOL;           // rising edge simulates a module error with "Module error is ComError"
+    StartupTime       : TIME := T#300MS;
+    ComErrAckActive   : BOOL;
+END_VAR
+VAR_OUTPUT
+    SafeIn1     : BOOL;
+    SafeIn2     : BOOL;
+    SafeIn3     : BOOL;
+    SafeIn4     : BOOL;
+    ComError    : BOOL;
+    InStartup   : BOOL;
+    InDataState : BOOL;
+    State       : BYTE;
+    Diag        : BYTE;
+END_VAR
+VAR
+    _connection : T_SafeConnection;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[_connection(
+    GroupRun := GroupRun,
+    ErrAck := ErrAck,
+    ComErrAck := ComErrAck,
+    InjectComError := InjectComError OR InjectModuleError,
+    InjectErrorCode := SEL(InjectModuleError, E_SafeConnectionError.WatchdogElapsed, E_SafeConnectionError.SlaveModuleError),
+    StartupTime := StartupTime,
+    ComErrAckActive := ComErrAckActive);
+SafeIn1 := Channel1 AND _connection.InDataState;
+SafeIn2 := Channel2 AND _connection.InDataState;
+SafeIn3 := Channel3 AND _connection.InDataState;
+SafeIn4 := Channel4 AND _connection.InDataState;
+ComError := _connection.ComError;
+InStartup := _connection.InStartup;
+InDataState := _connection.InDataState;
+State := _connection.State;
+Diag := _connection.Diag;
+]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.22">
+  <POU Name="T_SafeDecouple" Id="{e4fd52ec-f376-522c-aac8-431db5b3719e}" SpecialFunc="None">
+    <Declaration><![CDATA[// Model of the TwinSAFE FB DECOUPLE: eight inputs looped one-to-one to eight outputs.
+FUNCTION_BLOCK T_SafeDecouple EXTENDS T_SafeFunctionBlockBase
+VAR_INPUT
+    DecIn1 : BOOL;
+    DecIn2 : BOOL;
+    DecIn3 : BOOL;
+    DecIn4 : BOOL;
+    DecIn5 : BOOL;
+    DecIn6 : BOOL;
+    DecIn7 : BOOL;
+    DecIn8 : BOOL;
+END_VAR
+VAR_OUTPUT
+    DecOut1 : BOOL;
+    DecOut2 : BOOL;
+    DecOut3 : BOOL;
+    DecOut4 : BOOL;
+    DecOut5 : BOOL;
+    DecOut6 : BOOL;
+    DecOut7 : BOOL;
+    DecOut8 : BOOL;
+END_VAR
+VAR
+    _state : E_SafeFbState := E_SafeFbState.Stop;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[SUPER^();
+]]></ST>
+    </Implementation>
+    <Method Name="Process" Id="{b87e82d1-6339-52bc-9aa0-f9439d003644}">
+      <Declaration><![CDATA[METHOD PROTECTED Process
+VAR
+    run : BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[run := FbRun;
+_state := SEL(run, E_SafeFbState.Stop, E_SafeFbState.Run);
+DecOut1 := run AND DecIn1;
+DecOut2 := run AND DecIn2;
+DecOut3 := run AND DecIn3;
+DecOut4 := run AND DecIn4;
+DecOut5 := run AND DecIn5;
+DecOut6 := run AND DecIn6;
+DecOut7 := run AND DecIn7;
+DecOut8 := run AND DecIn8;
+Error := FALSE;
+Diag := 0;
+State := TO_BYTE(_state);
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

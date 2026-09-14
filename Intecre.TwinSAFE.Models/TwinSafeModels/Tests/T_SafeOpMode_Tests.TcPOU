@@ -1,0 +1,92 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.22">
+  <POU Name="T_SafeOpMode_Tests" Id="{d0130fc1-9d06-5052-9dad-6e22ca0784de}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK T_SafeOpMode_Tests EXTENDS TcUnit.FB_TestSuite
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Test_ExactlyOneInputSelectsOutput();
+Test_ConnectedRestartRequiresRestartSequence();
+Test_SlowModeChangeGivesDiscrepancyError();
+]]></ST>
+    </Implementation>
+    <Method Name="Test_ExactlyOneInputSelectsOutput" Id="{3b990399-42cf-5606-b314-eec448d34948}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_ExactlyOneInputSelectsOutput
+VAR
+        fb : T_SafeOpMode;
+    END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// act: STOP -> SAFE -> RUN (no Restart connected: automatic)
+    fb(FbRun := TRUE, OpIn1 := FALSE, OpIn2 := TRUE);
+    fb(FbRun := TRUE, OpIn1 := FALSE, OpIn2 := TRUE);
+    // assert
+    AssertEquals_BOOL(Expected := TRUE, Actual := fb.OpOut2, Message := 'selected mode output on');
+    AssertEquals_BOOL(Expected := FALSE, Actual := fb.OpOut1, Message := 'other outputs off');
+    AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Run), Actual := fb.State, Message := 'state RUN');
+    // act: second input also set
+    fb(FbRun := TRUE, OpIn1 := TRUE, OpIn2 := TRUE);
+    AssertEquals_BOOL(Expected := FALSE, Actual := fb.OpOut2, Message := 'all outputs off with two modes selected');
+    AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Safe), Actual := fb.State, Message := 'state SAFE');
+    TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_ConnectedRestartRequiresRestartSequence" Id="{f740a1ec-4a81-5461-a63f-89e5adc985f1}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_ConnectedRestartRequiresRestartSequence
+VAR
+        fb : T_SafeOpMode;
+    END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// act
+    fb(FbRun := TRUE, Restart := FALSE, OpIn1 := TRUE, OpIn2 := FALSE);
+    fb(FbRun := TRUE, Restart := FALSE, OpIn1 := TRUE, OpIn2 := FALSE);
+    // assert
+    AssertEquals_BOOL(Expected := FALSE, Actual := fb.OpOut1, Message := 'no output before restart');
+    fb(FbRun := TRUE, Restart := TRUE, OpIn1 := TRUE, OpIn2 := FALSE);
+    AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Start), Actual := fb.State, Message := 'state START while restart held');
+    fb(FbRun := TRUE, Restart := FALSE, OpIn1 := TRUE, OpIn2 := FALSE);
+    AssertEquals_BOOL(Expected := TRUE, Actual := fb.OpOut1, Message := 'output on after restart falling edge');
+    TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_SlowModeChangeGivesDiscrepancyError" Id="{77cb4e41-82ca-565a-b75f-291378702b4f}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_SlowModeChangeGivesDiscrepancyError
+VAR_INST
+        fb        : T_SafeOpMode := (Parameters := (DiscrepancyTime := T#100MS));
+        state     : INT := 10;
+        waitTimer : TON;
+    END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+waitTimer();
+    CASE state OF
+        10:
+            // arrange: mode 1 selected and running
+            fb(FbRun := TRUE, OpIn1 := TRUE, OpIn2 := FALSE);
+            fb(FbRun := TRUE, OpIn1 := TRUE, OpIn2 := FALSE);
+            state := 20;
+            waitTimer(IN := TRUE, PT := T#250MS);
+        20:
+            // act: leave mode 1 without selecting another
+            fb(FbRun := TRUE, OpIn1 := FALSE, OpIn2 := FALSE);
+            IF NOT waitTimer.Q THEN
+                RETURN;
+            END_IF
+            waitTimer(IN := FALSE);
+            // assert
+            AssertEquals_BOOL(Expected := TRUE, Actual := fb.Error, Message := 'discrepancy error after time without a mode');
+            AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Error), Actual := fb.State, Message := 'state ERROR');
+            AssertEquals_WORD(Expected := WORD#1, Actual := fb.Diag, Message := 'diag bit 0');
+            TEST_FINISHED_NAMED(__POUNAME());
+            state := 10;
+    END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>
