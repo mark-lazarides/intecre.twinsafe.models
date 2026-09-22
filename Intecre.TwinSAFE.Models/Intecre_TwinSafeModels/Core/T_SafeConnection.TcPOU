@@ -38,7 +38,11 @@ VAR
 END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[IF _group.ErrAck AND NOT _errAckPrev THEN
+      <ST><![CDATA[IF NOT __ISVALIDREF(_group) THEN
+    RETURN; // not (yet) assigned to a group: stays in its initial (fail-safe) state
+END_IF
+
+IF _group.ErrAck AND NOT _errAckPrev THEN
     _groupAcknowledged := TRUE;
 END_IF
 
@@ -99,11 +103,36 @@ VAR_INPUT
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[_group REF= group;
+        <ST><![CDATA[SetGroupReference(
+    bInCopyCode := bInCopyCode,
+    group := group
+);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetGroupReference" Id="{70f2721f-7bc9-598b-9d4b-d23e1465eba2}">
+      <Declaration><![CDATA[// Assigns the connection to a TwinSAFE group and registers it there. Called by FB_init; call it
+// yourself from the FB_init of a composite (user) block to pass its group on to a connection it
+// contains, which was declared with the composite's own _group before that reference was valid.
+// Registering twice with the same group is harmless. Returns TRUE when the group was valid.
+METHOD PUBLIC SetGroupReference : BOOL
+VAR_INPUT
+    bInCopyCode : BOOL;
+    group : REFERENCE TO T_SafeGroup; // the TwinSAFE group this connection is assigned to
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT __ISVALIDREF(group) THEN
+    RETURN;
+END_IF
+
+_group REF= group;
 
 IF NOT bInCopyCode THEN
     group.RegisterConnection(THIS^);
 END_IF
+
+SetGroupReference := TRUE;
 ]]></ST>
       </Implementation>
     </Method>

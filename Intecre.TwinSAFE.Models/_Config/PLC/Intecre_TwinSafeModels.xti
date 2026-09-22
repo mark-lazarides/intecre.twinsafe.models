@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <TcSmItem xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2012/07/TcSmProject" TcSmVersion="1.0" TcVersion="3.1.4026.25" ClassName="CNestedPlcProjDef">
 	<Project GUID="{EA74B86F-EA6C-5546-8926-9CDE15AC5BC6}" Name="Intecre_TwinSafeModels" PrjFilePath="..\..\Intecre_TwinSafeModels\Intecre_TwinSafeModels.plcproj" TmcFilePath="..\..\Intecre_TwinSafeModels\Intecre_TwinSafeModels.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" CopyTmcToTarget="true" CopyTpyToTarget="false">
-		<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{9FBBD35B-BDEB-66D3-45C2-9E1E4D20137A}" TmcPath="TwinSafeModels\TwinSafeModels.tmc">
+		<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{C9824DBE-B71D-2D28-DEE4-A549279291CB}" TmcPath="Intecre_TwinSafeModels\Intecre_TwinSafeModels.tmc">
 			<Name>Intecre_TwinSafeModels Instance</Name>
 			<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 			<Contexts>

@@ -24,8 +24,14 @@ VAR
 END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[_fbRun             := _group.InRun;
-_errAck            := _group.ErrAck;
+      <ST><![CDATA[IF __ISVALIDREF(_group) THEN
+    _fbRun  := _group.InRun;
+    _errAck := _group.ErrAck;
+ELSE
+    // not (yet) in a group: behaves as a stopped block until SetGroupReference is called
+    _fbRun  := FALSE;
+    _errAck := FALSE;
+END_IF
 _errAckRisingEdge  := _errAck AND NOT _errAckPrev;
 _errAckFallingEdge := NOT _errAck AND _errAckPrev;
 _errAckPrev        := _errAck;
@@ -78,18 +84,28 @@ END_VAR
       </Implementation>
     </Method>
     <Method Name="SetGroupReference" Id="{4f3224f2-844b-4290-af19-cff0af21d330}">
-      <Declaration><![CDATA[METHOD PUBLIC SetGroupReference : BOOL
+      <Declaration><![CDATA[// Assigns the block to a TwinSAFE group and registers it there. Called by FB_init; call it
+// yourself from the FB_init of a composite (user) block to pass its group on to the blocks it
+// contains, which were declared with the composite's own _group before that reference was valid.
+// Registering twice with the same group is harmless. Returns TRUE when the group was valid.
+METHOD PUBLIC SetGroupReference : BOOL
 VAR_INPUT
     bInCopyCode : BOOL;
     group : REFERENCE TO T_SafeGroup; // the TwinSAFE group this block belongs to
 END_VAR
 ]]></Declaration>
       <Implementation>
-        <ST><![CDATA[_group REF= group;
+        <ST><![CDATA[IF NOT __ISVALIDREF(group) THEN
+    RETURN;
+END_IF
+
+_group REF= group;
 
 IF NOT bInCopyCode THEN
     group.RegisterFunctionBlock(THIS^);
-END_IF]]></ST>
+END_IF
+
+SetGroupReference := TRUE;]]></ST>
       </Implementation>
     </Method>
   </POU>
