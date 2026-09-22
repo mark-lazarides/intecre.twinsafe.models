@@ -49,7 +49,7 @@ Intecre.TwinSAFE.Models/                 TwinCAT solution project (tsproj)
     Core/                                group, connection, terminal models, FB base class, helpers
     DUTs/                                state / diag enums and parameter structs
     FunctionBlocks/                      one T_Safe* FB per TwinSAFE FB
-    Tests/                               TcUnit suites in ST (T_*_Tests) and FBD (T_*_Tests_FBD) + PRG_TestRunner
+    Tests/                               TcUnit suites in ST (T_*_Tests) and CFC (T_*_Tests_CFC) + PRG_TestRunner
     Examples/                            PRG_EStopExample (ST) and PRG_EStopExample_CFC (same wiring in CFC)
     PlcTask.TcTTO                        runs PRG_TestRunner and both examples
 docs/images/                             screenshots used in this README
@@ -229,7 +229,9 @@ Where the manual is explicit the models follow it. Where it is silent the follow
 
 ## Tests
 
-`PRG_TestRunner` runs 36 TcUnit suites: 18 in structured text (`T_*_Tests`) and their FBD twins (`T_*_Tests_FBD`), 48 tests each. The FBD suites exercise the blocks the way a TwinSAFE project is authored: each test is a sequence of networks calling the FB with its pins wired. Timed tests in FBD use chained `TON` timers and `R_TRIG` one-shots on the `EN` of the assert boxes instead of the ST `CASE` state machines, so the two versions of a timed test are equivalent rather than identical.
+`PRG_TestRunner` runs 36 TcUnit suites: 18 in structured text (`T_*_Tests`) and their CFC twins (`T_*_Tests_CFC`), 48 tests each. The CFC suites exercise the blocks the way a TwinSAFE project is authored: each test method is a diagram with the calls down the middle in execution order and, beside each call, the asserts that check it, their `Actual` pins wired straight from the block's output pins as a TwinSAFE network would be wired. The methods use explicit execution order (the sequence the boxes were placed in), so a timed test that calls the same block several times in one diagram runs its calls and asserts in the order written; in auto data flow mode the editor reorders wired boxes and those tests assert at the wrong moment. Timed tests use chained `TON` timers and `R_TRIG` one-shots on the `EN` of the assert boxes instead of the ST `CASE` state machines, so the two versions of a timed test are equivalent rather than identical.
+
+The CFC suites extend `T_SafeCfcTestSuite` rather than `TcUnit.FB_TestSuite` directly. TcUnit's `TEST` and `TEST_FINISHED_NAMED` are functions without a return type, and a CFC box for a function must carry a return pin, so that small base class wraps them as the methods `StartTest` and `FinishTest` that the diagrams call.
 
 Activate the configuration, log in, and read the results in the TwinCAT error list or through the TcUnit xUnit output. Timed tests use 50 to 900 ms waits, so a full run takes a few seconds.
 
@@ -238,12 +240,11 @@ Activate the configuration, log in, and read the results in the TwinCAT error li
 | Date | Version | Result |
 |---|---|---|
 | 14 Sep 2026 | previous group design (explicit `FbRun` / `ErrAck` wiring) | all 96 tests passed after two fixes, see below |
-| current | group membership by reference at initialisation | compiles; **not yet run on a runtime** |
+| 22 Sep 2026 | group membership by reference, FBD twins | all passed except two asserts in the FBD group connection test, which read the group on its first cycle before the terminal had run; the CFC version asserts one cycle later |
+| 22 Sep 2026 | CFC twins replace the FBD twins, explicit execution order, group membership by reference | all 96 tests passed |
 
-The first run showed about 70 failures from one cause, state-entry actions running one call late; the blocks now re-evaluate their state `CASE` until it settles so outputs switch in the same cycle as the transition, as a TwinSAFE FB does. The last two failures were assert timing in the FBD group tests. That run also confirmed the `is_connected` semantics the ST suites rely on: a pin passed in the call `fb(Pin := x)` reads as connected, an omitted pin as unconnected.
+The first run showed about 70 failures from one cause, state-entry actions running one call late; the blocks now re-evaluate their state `CASE` until it settles so outputs switch in the same cycle as the transition, as a TwinSAFE FB does. The last two failures were assert timing in the graphical group tests (then FBD, now CFC). That run also confirmed the `is_connected` semantics the ST suites rely on: a pin passed in the call `fb(Pin := x)` reads as connected, an omitted pin as unconnected.
 
-> [!IMPORTANT]
-> Run the suites again on the current version before relying on it.
 
 ## Conventions
 

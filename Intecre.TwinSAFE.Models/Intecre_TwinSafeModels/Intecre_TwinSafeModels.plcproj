@@ -186,115 +186,118 @@
     <Compile Include="Project Information\F_GetVersion.TcPOU">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Tests\T_SafeCfcTestSuite.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Tests\PRG_TestRunner.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Tests\T_SafeAnd_Tests.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Tests\T_SafeAnd_Tests_FBD.TcPOU">
+    <Compile Include="Tests\T_SafeAnd_Tests_CFC.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Tests\T_SafeConnShutdown_Tests.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Tests\T_SafeConnShutdown_Tests_FBD.TcPOU">
+    <Compile Include="Tests\T_SafeConnShutdown_Tests_CFC.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Tests\T_SafeConnection_Tests.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Tests\T_SafeConnection_Tests_FBD.TcPOU">
+    <Compile Include="Tests\T_SafeConnection_Tests_CFC.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Tests\T_SafeDecouple_Tests.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Tests\T_SafeDecouple_Tests_FBD.TcPOU">
+    <Compile Include="Tests\T_SafeDecouple_Tests_CFC.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Tests\T_SafeEStop_Tests.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Tests\T_SafeEStop_Tests_FBD.TcPOU">
+    <Compile Include="Tests\T_SafeEStop_Tests_CFC.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Tests\T_SafeEdm_Tests.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Tests\T_SafeEdm_Tests_FBD.TcPOU">
+    <Compile Include="Tests\T_SafeEdm_Tests_CFC.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Tests\T_SafeGroup_Tests.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Tests\T_SafeGroup_Tests_FBD.TcPOU">
+    <Compile Include="Tests\T_SafeGroup_Tests_CFC.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Tests\T_SafeInputPair_Tests.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Tests\T_SafeInputPair_Tests_FBD.TcPOU">
+    <Compile Include="Tests\T_SafeInputPair_Tests_CFC.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Tests\T_SafeMon_Tests.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Tests\T_SafeMon_Tests_FBD.TcPOU">
+    <Compile Include="Tests\T_SafeMon_Tests_CFC.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Tests\T_SafeMuting_Tests.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Tests\T_SafeMuting_Tests_FBD.TcPOU">
+    <Compile Include="Tests\T_SafeMuting_Tests_CFC.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Tests\T_SafeOpMode_Tests.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Tests\T_SafeOpMode_Tests_FBD.TcPOU">
+    <Compile Include="Tests\T_SafeOpMode_Tests_CFC.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Tests\T_SafeOr_Tests.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Tests\T_SafeOr_Tests_FBD.TcPOU">
+    <Compile Include="Tests\T_SafeOr_Tests_CFC.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Tests\T_SafeRs_Tests.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Tests\T_SafeRs_Tests_FBD.TcPOU">
+    <Compile Include="Tests\T_SafeRs_Tests_CFC.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Tests\T_SafeSr_Tests.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Tests\T_SafeSr_Tests_FBD.TcPOU">
+    <Compile Include="Tests\T_SafeSr_Tests_CFC.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Tests\T_SafeTof_Tests.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Tests\T_SafeTof_Tests_FBD.TcPOU">
+    <Compile Include="Tests\T_SafeTof_Tests_CFC.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Tests\T_SafeTon_Tests.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Tests\T_SafeTon_Tests_FBD.TcPOU">
+    <Compile Include="Tests\T_SafeTon_Tests_CFC.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Tests\T_SafeTwoHand_Tests.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Tests\T_SafeTwoHand_Tests_FBD.TcPOU">
+    <Compile Include="Tests\T_SafeTwoHand_Tests_CFC.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Tests\T_SafeXor_Tests.TcPOU">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Tests\T_SafeXor_Tests_FBD.TcPOU">
+    <Compile Include="Tests\T_SafeXor_Tests_CFC.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Version\Global_Version.TcGVL">
@@ -341,11 +344,6 @@
     <PlaceholderResolution Include="TcUnit">
       <Resolution>TcUnit, * (www.tcunit.org)</Resolution>
     </PlaceholderResolution>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="TwinSafeModels.tmc">
-      <SubType>Content</SubType>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <None Include="Intecre_TwinSafeModels.tmc">

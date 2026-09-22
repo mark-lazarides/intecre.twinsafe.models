@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4026.22">
+  <POU Name="T_SafeCfcTestSuite" Id="{5b8db23e-b89f-53f5-a9dd-2055a694f476}" SpecialFunc="None">
+    <Declaration><![CDATA[// Base of the CFC test suites. TcUnit's TEST and TEST_FINISHED_NAMED are functions without a return
+// type, which a CFC box cannot call (the editor insists on a return pin), so the diagrams call these
+// two methods instead. Everything else comes from TcUnit.FB_TestSuite.
+FUNCTION_BLOCK ABSTRACT T_SafeCfcTestSuite EXTENDS TcUnit.FB_TestSuite
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <Method Name="StartTest" Id="{a7b7a387-18ba-56fd-ad9d-c291f19aaaad}">
+      <Declaration><![CDATA[// Marks the start of a test (TcUnit.TEST). Call it first in every test method, every cycle.
+METHOD PROTECTED StartTest
+VAR_INPUT
+    TestName : T_MaxString;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(TestName);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="FinishTest" Id="{063209f1-29d3-5445-b235-6819f9af0ff8}">
+      <Declaration><![CDATA[// Marks a test as finished (TcUnit.TEST_FINISHED_NAMED).
+METHOD PROTECTED FinishTest
+VAR_INPUT
+    TestName : T_MaxString;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST_FINISHED_NAMED(TestName);
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>
