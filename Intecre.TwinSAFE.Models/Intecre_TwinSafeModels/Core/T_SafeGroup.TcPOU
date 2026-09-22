@@ -1,0 +1,274 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="T_SafeGroup" Id="{ca60e3b3-c5d3-5e53-9c71-9f6eafeaee90}" SpecialFunc="None">
+    <Declaration><![CDATA[// Model of a TwinSAFE group (EL/EJ6910 semantics).
+// Function blocks and connections join the group at construction (FB_init group reference) and the
+// group reads their outputs, so nothing needs wiring beyond the standard PLC signals.
+// Call the group before its members each cycle. Declare the group before its members.
+FUNCTION_BLOCK T_SafeGroup
+VAR_INPUT
+    Run : BOOL := TRUE; // Run/Stop. Link to a standard PLC variable.
+    ErrAck : BOOL; // Error acknowledge (FALSE -> TRUE -> FALSE). Link to a standard PLC variable.
+    ModuleFault : BOOL; // error input from another module (e.g. EK1960)
+END_VAR
+VAR_OUTPUT
+    ComErr : BOOL; // communication error in at least one connection
+    FbErr : BOOL; // at least one FB is in the ERROR state
+    OutErr : BOOL; // not used (local outputs only exist on KL6904)
+    OtherErr : BOOL; // ModuleFault
+    ComStartup : BOOL; // at least one connection is starting up
+    FbDeactive : BOOL; // group deactivated by customising (not modelled, always FALSE)
+    FbRun : BOOL; // all FBs are in the RUN state
+    InRun : BOOL; // the group is in the RUN state (FbRun of the members)
+    State : BYTE; // group state code (Map State)
+    Diag : BYTE; // group diagnostic code (Map Diag)
+END_VAR
+VAR CONSTANT
+    MAX_FUNCTION_BLOCKS : UINT := 64;
+    MAX_CONNECTIONS : UINT := 32;
+END_VAR
+VAR
+    _functionBlocks : ARRAY[1..MAX_FUNCTION_BLOCKS] OF POINTER TO T_SafeFunctionBlockBase;
+    _functionBlockCount : UINT;
+    _connections : ARRAY[1..MAX_CONNECTIONS] OF POINTER TO T_SafeConnection;
+    _connectionCount : UINT;
+    _state : E_SafeGroupState := E_SafeGroupState.Stop;
+    _prevState : E_SafeGroupState;
+    _errAckPrev : BOOL;
+    _errAckFallingEdge : BOOL;
+    _anyFbError : BOOL;
+    _allFbsRunning : BOOL;
+    _anyComError : BOOL;
+    _anyComStartup : BOOL;
+    _anyError : BOOL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[_errAckFallingEdge := NOT ErrAck AND _errAckPrev;
+_errAckPrev        := ErrAck;
+ScanMembers();
+_anyError := _anyFbError OR _anyComError OR ModuleFault;
+
+CASE _state OF
+    E_SafeGroupState.Undefined,
+    E_SafeGroupState.Stop:
+        StateChanged();
+
+        IF _anyError THEN
+            _state := E_SafeGroupState.StopError;
+        ELSIF Run THEN
+            _state := SEL(_anyComStartup, E_SafeGroupState.Run, E_SafeGroupState.Start);
+        END_IF
+
+    E_SafeGroupState.StopError:
+        StateChanged();
+
+        IF Run THEN
+            _state := E_SafeGroupState.Error;
+        ELSIF NOT _anyError THEN
+            _state := E_SafeGroupState.Stop;
+        END_IF
+
+    E_SafeGroupState.Start:
+        StateChanged();
+
+        IF _anyError THEN
+            _state := E_SafeGroupState.Error;
+        ELSIF NOT Run THEN
+            _state := E_SafeGroupState.Stop;
+        ELSIF NOT _anyComStartup THEN
+            _state := E_SafeGroupState.Run;
+        END_IF
+
+    E_SafeGroupState.Run:
+        StateChanged();
+
+        IF _anyError THEN
+            _state := E_SafeGroupState.Error;
+        ELSIF NOT Run THEN
+            _state := E_SafeGroupState.Stop;
+        ELSIF _anyComStartup THEN
+            _state := E_SafeGroupState.Start;
+        END_IF
+
+    E_SafeGroupState.Error:
+        StateChanged();
+
+        IF NOT Run THEN
+            _state := E_SafeGroupState.StopError;
+        ELSIF ErrAck AND NOT _anyError THEN
+            _state := E_SafeGroupState.Reset;
+        END_IF
+
+    E_SafeGroupState.Reset:
+        StateChanged();
+
+        IF _anyError THEN
+            _state := E_SafeGroupState.Error;
+        ELSIF _errAckFallingEdge THEN
+            IF NOT Run THEN
+                _state := E_SafeGroupState.Stop;
+            ELSIF _anyComStartup THEN
+                _state := E_SafeGroupState.Start;
+            ELSE
+                _state := E_SafeGroupState.Run;
+            END_IF
+        END_IF
+
+ELSE
+    _state := E_SafeGroupState.Stop;
+END_CASE
+
+ComErr     := _anyComError;
+FbErr      := _anyFbError;
+OutErr     := FALSE;
+OtherErr   := ModuleFault;
+ComStartup := _anyComStartup;
+FbDeactive := FALSE;
+FbRun      := _allFbsRunning;
+InRun      := (_state = E_SafeGroupState.Run);
+State      := TO_BYTE(_state);
+
+IF _anyFbError THEN
+    Diag := TO_BYTE(E_SafeGroupDiag.FbError);
+ELSIF _anyComError THEN
+    Diag := TO_BYTE(E_SafeGroupDiag.ComError);
+ELSIF ModuleFault THEN
+    Diag := TO_BYTE(E_SafeGroupDiag.ModuleError);
+ELSE
+    Diag := TO_BYTE(E_SafeGroupDiag.NoError);
+END_IF
+]]></ST>
+    </Implementation>
+    <Property Name="ConnectionCount" Id="{9f1c36e8-73b5-593e-ad09-b58bfb167dbb}">
+      <Declaration><![CDATA[PROPERTY ConnectionCount : UINT
+]]></Declaration>
+      <Get Name="Get" Id="{805a45ba-7ba2-5a7e-bef9-90e5994a0578}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[ConnectionCount := _connectionCount;
+]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="FunctionBlockCount" Id="{08a8d305-230e-512f-96cd-bf481bfd6c87}">
+      <Declaration><![CDATA[PROPERTY FunctionBlockCount : UINT
+]]></Declaration>
+      <Get Name="Get" Id="{42b36699-fe33-513b-9b6e-52db22d74200}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[FunctionBlockCount := _functionBlockCount;
+]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="GroupState" Id="{88c560ad-a012-59c6-aebe-9cf6cecc461d}">
+      <Declaration><![CDATA[PROPERTY GroupState : E_SafeGroupState
+]]></Declaration>
+      <Get Name="Get" Id="{47ddc3bb-ec02-5df3-b434-0c29bf085089}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[GroupState := _state;
+]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="RegisterConnection" Id="{21a69469-e7f6-5244-9f49-ce1043f3e713}">
+      <Declaration><![CDATA[// Called by T_SafeConnection.FB_init. Not part of the public interface.
+METHOD INTERNAL RegisterConnection
+VAR_INPUT
+    connection : REFERENCE TO T_SafeConnection;
+END_VAR
+VAR
+    i : UINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[FOR i := 1 TO _connectionCount DO
+    IF _connections[i] = ADR(connection) THEN
+        RETURN;
+    END_IF
+END_FOR
+
+IF _connectionCount >= MAX_CONNECTIONS THEN
+    RETURN;
+END_IF
+
+_connectionCount               := _connectionCount + 1;
+_connections[_connectionCount] := ADR(connection);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="RegisterFunctionBlock" Id="{e6b7fda6-4c09-5615-8ca8-ca35c0e25b7a}">
+      <Declaration><![CDATA[// Called by T_SafeFunctionBlockBase.FB_init. Not part of the public interface.
+METHOD INTERNAL RegisterFunctionBlock
+VAR_INPUT
+    functionBlock : REFERENCE TO T_SafeFunctionBlockBase;
+END_VAR
+VAR
+    i : UINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[FOR i := 1 TO _functionBlockCount DO
+    IF _functionBlocks[i] = ADR(functionBlock) THEN
+        RETURN;
+    END_IF
+END_FOR
+
+IF _functionBlockCount >= MAX_FUNCTION_BLOCKS THEN
+    RETURN;
+END_IF
+
+_functionBlockCount                  := _functionBlockCount + 1;
+_functionBlocks[_functionBlockCount] := ADR(functionBlock);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ScanMembers" Id="{c74e8303-679e-5cf6-927a-4d31a260abed}">
+      <Declaration><![CDATA[// Reads the outputs of the registered function blocks and connections.
+METHOD PRIVATE ScanMembers
+VAR
+    i : UINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_anyFbError    := FALSE;
+_allFbsRunning := (_functionBlockCount > 0);
+
+FOR i := 1 TO _functionBlockCount DO
+    _anyFbError    := _anyFbError OR _functionBlocks[i]^.Error;
+    _allFbsRunning := _allFbsRunning AND _functionBlocks[i]^.IsRunning;
+END_FOR
+
+_anyComError   := FALSE;
+_anyComStartup := FALSE;
+
+FOR i := 1 TO _connectionCount DO
+    _anyComError   := _anyComError OR _connections[i]^.ComError;
+    _anyComStartup := _anyComStartup OR _connections[i]^.InStartup;
+END_FOR
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="StateChanged" Id="{7729e32f-e128-5432-b1a8-540fa8176f1d}">
+      <Declaration><![CDATA[METHOD PRIVATE StateChanged : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF _prevState = _state THEN
+    RETURN;
+END_IF
+
+_prevState   := _state;
+StateChanged := TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

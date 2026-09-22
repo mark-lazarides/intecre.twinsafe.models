@@ -1,0 +1,639 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="T_SafeMuting" Id="{b9502b52-60ce-5c7d-bf15-ddfb0de6a4bd}" SpecialFunc="None">
+    <Declaration><![CDATA[// Model of the TwinSAFE FB MUTING.
+// Suppresses the protective device (OSSDIn) while the muting sensors are actuated in the expected order.
+// Sequence (sequential inputs, four sensors, forward):
+//   M1 on, M2 on, OSSD blocked, M3 on, M1 off, M4 on, M2 off, OSSD clear, M3 off, M4 off
+// Sequence (two sensors: parallel inputs, or sequential with MutingIn3/4 unconnected):
+//   S1 on, S2 on, OSSD blocked, S1 off, OSSD clear, S2 off
+// Any other change of a sensor or the OSSD during a sequence violates it (diagnostic bit 6).
+{attribute 'reflection'}
+FUNCTION_BLOCK T_SafeMuting EXTENDS T_SafeFunctionBlockBase
+VAR_INPUT
+    MutingEnable : BOOL; // may be a standard PLC signal
+    EDM1 : BOOL; // feedback loop of MuteOut
+    EDM2 : BOOL; // feedback loop of MuteDelOut
+    MutingIn1 : BOOL;
+    MutingIn2 : BOOL;
+    OSSDIn1 : BOOL; // protective device channel 1 (TRUE = clear)
+    OSSDIn2 : BOOL; // protective device channel 2
+    MutingIn3 : BOOL;
+    MutingIn4 : BOOL;
+    Parameters : ST_SafeMutingParameters;
+END_VAR
+VAR_OUTPUT
+    MutingActive : BOOL; // muting lamp
+    MuteOut : BOOL;
+    MuteDelOut : BOOL;
+END_VAR
+VAR
+    {attribute 'is_connected' := 'MutingEnable'}
+    _mutingEnableConnected : BOOL;
+    {attribute 'is_connected' := 'EDM1'}
+    _eDM1Connected : BOOL;
+    {attribute 'is_connected' := 'EDM2'}
+    _eDM2Connected : BOOL;
+    {attribute 'is_connected' := 'MutingIn1'}
+    _mutingIn1Connected : BOOL;
+    {attribute 'is_connected' := 'MutingIn2'}
+    _mutingIn2Connected : BOOL;
+    {attribute 'is_connected' := 'OSSDIn1'}
+    _oSSDIn1Connected : BOOL;
+    {attribute 'is_connected' := 'OSSDIn2'}
+    _oSSDIn2Connected : BOOL;
+    {attribute 'is_connected' := 'MutingIn3'}
+    _mutingIn3Connected : BOOL;
+    {attribute 'is_connected' := 'MutingIn4'}
+    _mutingIn4Connected : BOOL;
+    _pairs : ARRAY[1..3] OF T_SafeInputPair; // 1: MutingIn1/2, 2: MutingIn3/4, 3: OSSDIn1/2
+    _state : E_SafeMutingState := E_SafeMutingState.Stop;
+    _prevState : E_SafeMutingState;
+    _filterTimers : ARRAY[1..4] OF TON;
+    _filtered : ARRAY[1..4] OF BOOL;
+    _sensor : ARRAY[1..4] OF BOOL; // actuated sensors after configuration
+    _ossdBlocked : BOOL;
+    _sensorCount : USINT;
+    _seqSensor : ARRAY[1..10] OF USINT; // 0 = OSSD
+    _seqLevel : ARRAY[1..10] OF BOOL;
+    _seqLength : USINT;
+    _seqIndex : USINT; // consumed events
+    _expected : ARRAY[0..4] OF BOOL; // expected level of each signal (0 = OSSD blocked)
+    _maxTimer : TON;
+    _delayTimer : TON;
+    _pendingError : BOOL;
+    _edmResetTimer1 : TON;
+    _edmResetTimer2 : TON;
+    _edm1Dropped : BOOL;
+    _edm2Dropped : BOOL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[SUPER^();
+]]></ST>
+    </Implementation>
+    <Method Name="Actual" Id="{b1008007-dc85-5d18-b908-2f519b691261}">
+      <Declaration><![CDATA[METHOD PRIVATE Actual : BOOL
+VAR_INPUT
+    signal : USINT; // 0 = OSSD blocked, 1..4 = sensor actuated
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF signal = 0 THEN
+    Actual := _ossdBlocked;
+ELSE
+    Actual := _sensor[signal];
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="AddEvent" Id="{0f674f9c-0b0f-543e-bd28-81995e6133a7}">
+      <Declaration><![CDATA[METHOD PRIVATE AddEvent
+VAR_INPUT
+    sensor : USINT; // 0 = OSSD
+    level : BOOL; // sensor actuated / OSSD blocked
+    backwards : BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF sensor = 0 AND Parameters.OssdCheckOptional THEN
+    RETURN;
+END_IF
+
+IF _seqLength >= 10 THEN
+    RETURN;
+END_IF
+
+_seqLength := _seqLength + 1;
+
+IF sensor > 0 AND backwards THEN
+    _seqSensor[_seqLength] := _sensorCount + 1 - sensor;
+ELSE
+    _seqSensor[_seqLength] := sensor;
+END_IF
+
+_seqLevel[_seqLength] := level;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Advance" Id="{30db6e78-de39-5ad5-a796-82280f0e5425}">
+      <Declaration><![CDATA[// Consumes every expected event that has occurred, then checks that no signal deviates
+// from the expected pattern. Returns TRUE when the sequence has been violated.
+METHOD PRIVATE Advance : BOOL
+VAR
+    progressed : BOOL;
+    next : USINT;
+    k : USINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[REPEAT
+    progressed := FALSE;
+
+    IF _seqIndex < _seqLength THEN
+        next := _seqIndex + 1;
+
+        IF Actual(_seqSensor[next]) = _seqLevel[next] THEN
+            _expected[_seqSensor[next]] := _seqLevel[next];
+            _seqIndex                   := next;
+            progressed                  := TRUE;
+        END_IF
+    END_IF
+UNTIL NOT progressed
+END_REPEAT
+
+FOR k := 0 TO _sensorCount DO
+    IF k = 0 AND Parameters.OssdCheckOptional THEN
+        CONTINUE;
+    END_IF
+
+    IF Actual(k) <> _expected[k] THEN
+        Advance := TRUE;
+    END_IF
+END_FOR
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="AnySensor" Id="{7866cc40-5096-53e0-a540-77513aa611e2}">
+      <Declaration><![CDATA[METHOD PRIVATE AnySensor : BOOL
+VAR
+    k : USINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[FOR k := 1 TO _sensorCount DO
+    AnySensor := AnySensor OR _sensor[k];
+END_FOR
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="BuildSequence" Id="{d9807ca3-3d7b-5df6-955a-1e94a44f7dd1}">
+      <Declaration><![CDATA[// Builds the expected event list for the configured sensor arrangement.
+METHOD PRIVATE BuildSequence
+VAR_INPUT
+    backwards : BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_seqLength := 0;
+
+IF _sensorCount = 4 THEN
+    AddEvent(1, TRUE, backwards);
+    AddEvent(2, TRUE, backwards);
+    AddEvent(0, TRUE, backwards);
+    AddEvent(3, TRUE, backwards);
+    AddEvent(1, FALSE, backwards);
+    AddEvent(4, TRUE, backwards);
+    AddEvent(2, FALSE, backwards);
+    AddEvent(0, FALSE, backwards);
+    AddEvent(3, FALSE, backwards);
+    AddEvent(4, FALSE, backwards);
+ELSE
+    AddEvent(1, TRUE, backwards);
+    AddEvent(2, TRUE, backwards);
+    AddEvent(0, TRUE, backwards);
+    AddEvent(1, FALSE, backwards);
+    AddEvent(0, FALSE, backwards);
+    AddEvent(2, FALSE, backwards);
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="EdmInputsOk" Id="{8dfc6697-6ed5-5eac-b28a-3da0b5b8ccd5}">
+      <Declaration><![CDATA[// Checks the EDM inputs at restart and records diagnostic bits 4/5 on failure.
+METHOD PRIVATE EdmInputsOk : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[EdmInputsOk := TRUE;
+
+IF _eDM1Connected AND NOT EDM1 THEN
+    SetDiagBit(4);
+    EdmInputsOk := FALSE;
+END_IF
+
+IF _eDM2Connected AND NOT EDM2 THEN
+    SetDiagBit(5);
+    EdmInputsOk := FALSE;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="EdmInputsTrue" Id="{26457356-be4a-5793-8048-267dfdaf49c1}">
+      <Declaration><![CDATA[// TRUE when every connected EDM input reads 1 (contactors released).
+METHOD PRIVATE EdmInputsTrue : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[EdmInputsTrue := (NOT _eDM1Connected OR EDM1) AND (NOT _eDM2Connected OR EDM2);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="EdmResetOk" Id="{4cb83282-6f66-551e-b978-0975da080999}">
+      <Declaration><![CDATA[// EL6910 extension: after the outputs switch on, each connected EDM input must drop to FALSE
+// within its Reset Time. Returns FALSE (and sets diagnostic bits 4/5) on timeout.
+METHOD PRIVATE EdmResetOk : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[EdmResetOk := TRUE;
+
+IF _eDM1Connected AND Parameters.Edm1ResetTime > T#0S THEN
+    IF NOT EDM1 THEN
+        _edm1Dropped := TRUE;
+    END_IF
+
+    _edmResetTimer1(IN := NOT _edm1Dropped, PT := Parameters.Edm1ResetTime);
+
+    IF _edmResetTimer1.Q THEN
+        SetDiagBit(4);
+        EdmResetOk := FALSE;
+    END_IF
+END_IF
+
+IF _eDM2Connected AND Parameters.Edm2ResetTime > T#0S THEN
+    IF NOT EDM2 THEN
+        _edm2Dropped := TRUE;
+    END_IF
+
+    _edmResetTimer2(IN := NOT _edm2Dropped, PT := Parameters.Edm2ResetTime);
+
+    IF _edmResetTimer2.Q THEN
+        SetDiagBit(5);
+        EdmResetOk := FALSE;
+    END_IF
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="IsMuting" Id="{2e40223f-5007-57fd-be66-310c751481dd}">
+      <Declaration><![CDATA[METHOD PRIVATE IsMuting : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IsMuting := (TO_BYTE(_state) >= TO_BYTE(E_SafeMutingState.Muting1)) AND (TO_BYTE(_state) <= TO_BYTE(E_SafeMutingState.Muting9));
+]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="MutingState" Id="{1b6e31b3-a46e-535d-9dc3-2b187bdd9b50}">
+      <Declaration><![CDATA[PROPERTY MutingState : E_SafeMutingState
+]]></Declaration>
+      <Get Name="Get" Id="{ff17b42f-5b25-53d7-9e22-61033adab743}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[MutingState := _state;
+]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="MutingStateFor" Id="{3b99055f-5cc4-534e-ba57-919a9a42aeb7}">
+      <Declaration><![CDATA[// State code for the given number of consumed sequence events.
+METHOD PRIVATE MutingStateFor : E_SafeMutingState
+VAR_INPUT
+    consumed : USINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[CASE consumed OF
+    1:
+        MutingStateFor := E_SafeMutingState.Muting1;
+    2:
+        MutingStateFor := E_SafeMutingState.Muting2;
+    3:
+        MutingStateFor := E_SafeMutingState.Muting3;
+    4:
+        MutingStateFor := E_SafeMutingState.Muting4;
+    5:
+        MutingStateFor := E_SafeMutingState.Muting5;
+    6:
+        MutingStateFor := E_SafeMutingState.Muting6;
+    7:
+        MutingStateFor := E_SafeMutingState.Muting7;
+    8:
+        MutingStateFor := E_SafeMutingState.Muting8;
+    9:
+        MutingStateFor := E_SafeMutingState.Muting9;
+ELSE
+    MutingStateFor := E_SafeMutingState.Run;
+END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Process" Id="{0c96ad18-278b-5f8c-9e8d-0d26ef6f2696}">
+      <Declaration><![CDATA[METHOD PROTECTED Process
+VAR
+    raw : ARRAY[1..4] OF BOOL;
+    i : USINT;
+    acknowledge : BOOL;
+    discError : BOOL;
+    operating : BOOL;
+    startFwd : BOOL;
+    startBwd : BOOL;
+    k : USINT;
+    stateBefore : E_SafeMutingState;
+    passes : USINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// Debounce of the muting inputs
+raw[1] := MutingIn1;
+raw[2] := MutingIn2;
+raw[3] := MutingIn3;
+raw[4] := MutingIn4;
+
+FOR i := 1 TO 4 DO
+    _filterTimers[i](IN := (raw[i] <> _filtered[i]), PT := Parameters.FilterTime);
+
+    IF _filterTimers[i].Q OR Parameters.FilterTime = T#0S THEN
+        _filtered[i] := raw[i];
+    END_IF
+END_FOR
+
+acknowledge := (_state = E_SafeMutingState.Error) AND _errAck;
+_pairs[1](
+    In1 := _filtered[1],
+    In2 := _filtered[2],
+    Active1 := _mutingIn1Connected,
+    Active2 := _mutingIn2Connected,
+    MakeContact1 := Parameters.MutingIn1MakeContact,
+    MakeContact2 := Parameters.MutingIn2MakeContact,
+    DiscrepancyTime := Parameters.MutingDiscrepancyTime1,
+    Monitor := _fbRun AND NOT Parameters.SequentialInputs,
+    SafeInputsAfterDiscError := Parameters.SafeInputsAfterDiscError,
+    Acknowledge := acknowledge
+);
+
+_pairs[2](
+    In1 := _filtered[3],
+    In2 := _filtered[4],
+    Active1 := _mutingIn3Connected,
+    Active2 := _mutingIn4Connected,
+    MakeContact1 := Parameters.MutingIn3MakeContact,
+    MakeContact2 := Parameters.MutingIn4MakeContact,
+    DiscrepancyTime := Parameters.MutingDiscrepancyTime2,
+    Monitor := _fbRun AND NOT Parameters.SequentialInputs,
+    SafeInputsAfterDiscError := Parameters.SafeInputsAfterDiscError,
+    Acknowledge := acknowledge
+);
+
+_pairs[3](
+    In1 := OSSDIn1,
+    In2 := OSSDIn2,
+    Active1 := _oSSDIn1Connected,
+    Active2 := _oSSDIn2Connected,
+    MakeContact1 := Parameters.OSSDIn1MakeContact,
+    MakeContact2 := Parameters.OSSDIn2MakeContact,
+    DiscrepancyTime := Parameters.OssdDiscrepancyTime,
+    Monitor := _fbRun,
+    SafeInputsAfterDiscError := Parameters.SafeInputsAfterDiscError,
+    Acknowledge := acknowledge
+);
+
+IF Parameters.SequentialInputs THEN
+    _sensorCount := SEL(_mutingIn3Connected OR _mutingIn4Connected, 2, 4);
+    _sensor[1]   := F_SafeInputValue(_mutingIn1Connected, Parameters.MutingIn1MakeContact, _filtered[1]);
+    _sensor[2]   := F_SafeInputValue(_mutingIn2Connected, Parameters.MutingIn2MakeContact, _filtered[2]);
+    _sensor[3]   := F_SafeInputValue(_mutingIn3Connected, Parameters.MutingIn3MakeContact, _filtered[3]);
+    _sensor[4]   := F_SafeInputValue(_mutingIn4Connected, Parameters.MutingIn4MakeContact, _filtered[4]);
+ELSE
+    _sensorCount := 2;
+    _sensor[1]   := _pairs[1].IsActive AND _pairs[1].AllTrue;
+    _sensor[2]   := _pairs[2].IsActive AND _pairs[2].AllTrue;
+    _sensor[3]   := FALSE;
+    _sensor[4]   := FALSE;
+END_IF
+
+_ossdBlocked := NOT _pairs[3].AllTrue;
+
+FOR i := 1 TO 3 DO
+    discError := discError OR _pairs[i].DiscrepancyError;
+END_FOR
+
+IF NOT _fbRun AND _state <> E_SafeMutingState.Error AND _state <> E_SafeMutingState.Reset THEN
+    _state := E_SafeMutingState.Stop;
+END_IF
+
+operating := (_state = E_SafeMutingState.Safe) OR (_state = E_SafeMutingState.Run) OR IsMuting();
+
+IF discError THEN
+    IF operating THEN
+        UpdateDiscrepancyDiag();
+        _state := E_SafeMutingState.Error;
+    ELSIF _state = E_SafeMutingState.DelayOut THEN
+        UpdateDiscrepancyDiag();
+        _pendingError := TRUE;
+    END_IF
+END_IF
+
+passes := 0;
+
+REPEAT
+    stateBefore := _state;
+
+    CASE _state OF
+        E_SafeMutingState.Stop:
+            IF StateChanged() THEN
+                SetOutputsSafe();
+                MutingActive  := FALSE;
+                Error         := FALSE;
+                Diag          := 0;
+                _pendingError := FALSE;
+            END_IF
+
+            IF _fbRun THEN
+                _state := E_SafeMutingState.Safe;
+            END_IF
+
+        E_SafeMutingState.Safe:
+            IF StateChanged() THEN
+                SetOutputsSafe();
+                MutingActive := FALSE;
+            END_IF
+
+            IF NOT _ossdBlocked AND EdmInputsTrue() THEN
+                _state := E_SafeMutingState.Run;
+            END_IF
+
+        E_SafeMutingState.Run:
+            IF StateChanged() THEN
+                MuteOut      := TRUE;
+                MuteDelOut   := TRUE;
+                MutingActive := FALSE;
+                StartEdmResetMonitoring();
+                _seqIndex := 0;
+                _maxTimer(IN := FALSE, PT := Parameters.MaxMutingTime);
+            END_IF
+
+            startFwd := _sensor[1];
+            startBwd := Parameters.BackwardsMode AND _sensor[_sensorCount];
+
+            IF NOT EdmResetOk() THEN
+                _state := E_SafeMutingState.Error;
+            ELSIF MutingEnable AND (startFwd OR startBwd) THEN
+                BuildSequence(startBwd AND NOT startFwd);
+
+                FOR k := 0 TO 4 DO
+                    _expected[k] := FALSE;
+                END_FOR
+
+                _seqIndex := 0;
+
+                IF Advance() THEN
+                    SetDiagBit(6);
+                    _state := E_SafeMutingState.Error;
+                ELSE
+                    _state := MutingStateFor(_seqIndex);
+                END_IF
+            ELSIF MutingEnable AND AnySensor() THEN
+                // a sensor actuated out of order while muting is enabled violates the sequence
+                SetDiagBit(6);
+                _state := E_SafeMutingState.Error;
+            ELSIF _ossdBlocked THEN
+                IF Parameters.DelayTime > T#0S THEN
+                    _state := E_SafeMutingState.DelayOut;
+                ELSE
+                    _state := E_SafeMutingState.Safe;
+                END_IF
+            END_IF
+
+        E_SafeMutingState.Muting1,
+        E_SafeMutingState.Muting2,
+        E_SafeMutingState.Muting3,
+        E_SafeMutingState.Muting4,
+        E_SafeMutingState.Muting5,
+        E_SafeMutingState.Muting6,
+        E_SafeMutingState.Muting7,
+        E_SafeMutingState.Muting8,
+        E_SafeMutingState.Muting9:
+            IF StateChanged() THEN
+                MuteOut      := TRUE;
+                MuteDelOut   := TRUE;
+                MutingActive := TRUE;
+            END_IF
+
+            _maxTimer(IN := (Parameters.MaxMutingTime > T#0S), PT := Parameters.MaxMutingTime);
+
+            IF NOT MutingEnable THEN
+                // muting withdrawn: the protective device takes over immediately
+                IF NOT _ossdBlocked THEN
+                    _state := E_SafeMutingState.Run;
+                ELSIF Parameters.DelayTime > T#0S THEN
+                    _state := E_SafeMutingState.DelayOut;
+                ELSE
+                    _state := E_SafeMutingState.Safe;
+                END_IF
+            ELSIF _maxTimer.Q THEN
+                SetDiagBit(7);
+                _state := E_SafeMutingState.Error;
+            ELSIF Advance() THEN
+                SetDiagBit(6);
+                _state := E_SafeMutingState.Error;
+            ELSIF _seqIndex >= _seqLength THEN
+                _state := E_SafeMutingState.Run;
+            ELSE
+                _state := MutingStateFor(_seqIndex);
+            END_IF
+
+        E_SafeMutingState.DelayOut:
+            IF StateChanged() THEN
+                MuteOut      := FALSE;
+                MuteDelOut   := TRUE;
+                MutingActive := FALSE;
+                _delayTimer(IN := FALSE, PT := Parameters.DelayTime);
+            END_IF
+
+            _delayTimer(IN := TRUE, PT := Parameters.DelayTime);
+
+            IF _delayTimer.Q THEN
+                _state := SEL(_pendingError, E_SafeMutingState.Safe, E_SafeMutingState.Error);
+            END_IF
+
+        E_SafeMutingState.Error:
+            IF StateChanged() THEN
+                SetOutputsSafe();
+                MutingActive  := FALSE;
+                Error         := TRUE;
+                _pendingError := FALSE;
+            END_IF
+
+            UpdateDiscrepancyDiag();
+
+            IF _errAck AND NOT discError THEN
+                _state := E_SafeMutingState.Reset;
+            END_IF
+
+        E_SafeMutingState.Reset:
+            IF StateChanged() THEN
+                SetOutputsSafe();
+                Error := FALSE;
+                Diag  := 0;
+            END_IF
+
+            IF _errAckFallingEdge THEN
+                _state := SEL(_fbRun, E_SafeMutingState.Stop, E_SafeMutingState.Safe);
+            END_IF
+    END_CASE
+
+    passes := passes + 1;
+UNTIL (stateBefore = _state) OR (passes >= 3)
+END_REPEAT
+
+State := TO_BYTE(_state);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetOutputsSafe" Id="{2c8fb322-f654-51a4-a940-946c5a224581}">
+      <Declaration><![CDATA[METHOD PRIVATE SetOutputsSafe
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[MuteOut    := FALSE;
+MuteDelOut := FALSE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="StartEdmResetMonitoring" Id="{930efb84-846f-50b7-b8ac-377ff6760946}">
+      <Declaration><![CDATA[METHOD PRIVATE StartEdmResetMonitoring
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_edm1Dropped := FALSE;
+_edm2Dropped := FALSE;
+_edmResetTimer1(IN := FALSE, PT := Parameters.Edm1ResetTime);
+_edmResetTimer2(IN := FALSE, PT := Parameters.Edm2ResetTime);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="StateChanged" Id="{54a4d2a5-2a17-59d9-8915-ac37d6d6503b}">
+      <Declaration><![CDATA[METHOD PRIVATE StateChanged : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF _prevState = _state THEN
+    RETURN;
+END_IF
+
+_prevState   := _state;
+StateChanged := TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="UpdateDiscrepancyDiag" Id="{cf689b73-8f63-5f23-97db-85079ec3bc40}">
+      <Declaration><![CDATA[// Mirrors the discrepancy state of every pair into the diagnostic bits.
+METHOD PRIVATE UpdateDiscrepancyDiag
+VAR
+    i : USINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[FOR i := 1 TO 3 DO
+    IF _pairs[i].DiscrepancyError THEN
+        SetDiagBit(SEL(i = 1, SEL(i = 2, 1, 2), 0));
+
+        IF _pairs[i].AwaitingSafeInputs THEN
+            SetDiagBit(SEL(i = 1, SEL(i = 2, 9, 10), 8));
+        ELSE
+            ClearDiagBit(SEL(i = 1, SEL(i = 2, 9, 10), 8));
+        END_IF
+    END_IF
+END_FOR
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

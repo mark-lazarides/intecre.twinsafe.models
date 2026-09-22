@@ -1,0 +1,397 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="T_SafeEStop" Id="{c23ec347-7c4f-57bf-9b3e-2edd82df257a}" SpecialFunc="None">
+    <Declaration><![CDATA[// Model of the TwinSAFE FB ESTOP.
+// Up to eight emergency stop inputs in four pairs, immediate and delayed outputs,
+// two feedback loops (EDM) and a manual restart requiring a 0 -> 1 -> 0 sequence on Restart.
+// Ports are active when connected.
+{attribute 'reflection'}
+FUNCTION_BLOCK T_SafeEStop EXTENDS T_SafeFunctionBlockBase
+VAR_INPUT
+    Restart : BOOL; // may be a standard PLC signal
+    EDM1 : BOOL; // feedback loop of EStopOut (may be a standard PLC signal)
+    EDM2 : BOOL; // feedback loop of EStopDelOut (may be a standard PLC signal)
+    EStopIn1 : BOOL;
+    EStopIn2 : BOOL;
+    EStopIn3 : BOOL;
+    EStopIn4 : BOOL;
+    EStopIn5 : BOOL;
+    EStopIn6 : BOOL;
+    EStopIn7 : BOOL;
+    EStopIn8 : BOOL;
+    Parameters : ST_SafeEStopParameters;
+END_VAR
+VAR_OUTPUT
+    EStopOut : BOOL; // switches off immediately
+    EStopDelOut : BOOL; // switches off after DelayTime
+END_VAR
+VAR
+    {attribute 'is_connected' := 'Restart'}
+    _restartConnected : BOOL;
+    {attribute 'is_connected' := 'EDM1'}
+    _eDM1Connected : BOOL;
+    {attribute 'is_connected' := 'EDM2'}
+    _eDM2Connected : BOOL;
+    {attribute 'is_connected' := 'EStopIn1'}
+    _eStopIn1Connected : BOOL;
+    {attribute 'is_connected' := 'EStopIn2'}
+    _eStopIn2Connected : BOOL;
+    {attribute 'is_connected' := 'EStopIn3'}
+    _eStopIn3Connected : BOOL;
+    {attribute 'is_connected' := 'EStopIn4'}
+    _eStopIn4Connected : BOOL;
+    {attribute 'is_connected' := 'EStopIn5'}
+    _eStopIn5Connected : BOOL;
+    {attribute 'is_connected' := 'EStopIn6'}
+    _eStopIn6Connected : BOOL;
+    {attribute 'is_connected' := 'EStopIn7'}
+    _eStopIn7Connected : BOOL;
+    {attribute 'is_connected' := 'EStopIn8'}
+    _eStopIn8Connected : BOOL;
+    _pairs : ARRAY[1..4] OF T_SafeInputPair;
+    _state : E_SafeFbState := E_SafeFbState.Stop;
+    _prevState : E_SafeFbState;
+    _restartPrev : BOOL;
+    _delayTimer : TON;
+    _edmResetTimer1 : TON;
+    _edmResetTimer2 : TON;
+    _edm1Dropped : BOOL;
+    _edm2Dropped : BOOL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[SUPER^();
+]]></ST>
+    </Implementation>
+    <Method Name="EdmInputsOk" Id="{5732e1ad-a6c0-56fd-8c68-c3e8b05d9262}">
+      <Declaration><![CDATA[// Checks the EDM inputs at restart and records diagnostic bits 4/5 on failure.
+METHOD PRIVATE EdmInputsOk : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[EdmInputsOk := TRUE;
+
+IF _eDM1Connected AND NOT EDM1 THEN
+    SetDiagBit(4);
+    EdmInputsOk := FALSE;
+END_IF
+
+IF _eDM2Connected AND NOT EDM2 THEN
+    SetDiagBit(5);
+    EdmInputsOk := FALSE;
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="EdmInputsTrue" Id="{72cca773-2dd3-54b2-9a07-9bfd26519036}">
+      <Declaration><![CDATA[// TRUE when every connected EDM input reads 1 (contactors released).
+METHOD PRIVATE EdmInputsTrue : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[EdmInputsTrue := (NOT _eDM1Connected OR EDM1) AND (NOT _eDM2Connected OR EDM2);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="EdmResetOk" Id="{b9a05126-9cb8-5115-b03a-455d5f4dbac2}">
+      <Declaration><![CDATA[// EL6910 extension: after the outputs switch on, each connected EDM input must drop to FALSE
+// within its Reset Time. Returns FALSE (and sets diagnostic bits 4/5) on timeout.
+METHOD PRIVATE EdmResetOk : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[EdmResetOk := TRUE;
+
+IF _eDM1Connected AND Parameters.Edm1ResetTime > T#0S THEN
+    IF NOT EDM1 THEN
+        _edm1Dropped := TRUE;
+    END_IF
+
+    _edmResetTimer1(IN := NOT _edm1Dropped, PT := Parameters.Edm1ResetTime);
+
+    IF _edmResetTimer1.Q THEN
+        SetDiagBit(4);
+        EdmResetOk := FALSE;
+    END_IF
+END_IF
+
+IF _eDM2Connected AND Parameters.Edm2ResetTime > T#0S THEN
+    IF NOT EDM2 THEN
+        _edm2Dropped := TRUE;
+    END_IF
+
+    _edmResetTimer2(IN := NOT _edm2Dropped, PT := Parameters.Edm2ResetTime);
+
+    IF _edmResetTimer2.Q THEN
+        SetDiagBit(5);
+        EdmResetOk := FALSE;
+    END_IF
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="EStopState" Id="{399cd5f2-11d4-527a-b59e-fb6e21b02259}">
+      <Declaration><![CDATA[PROPERTY EStopState : E_SafeFbState
+]]></Declaration>
+      <Get Name="Get" Id="{8cdc791a-a69b-5b31-921e-de24b337009f}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[EStopState := _state;
+]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="Process" Id="{8b2bd89e-2245-549e-a6e9-e5f8aee92eb9}">
+      <Declaration><![CDATA[METHOD PROTECTED Process
+VAR
+    i : USINT;
+    acknowledge : BOOL;
+    safeRequested : BOOL;
+    discError : BOOL;
+    restartFalling : BOOL;
+    operating : BOOL;
+    stateBefore : E_SafeFbState;
+    passes : USINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[acknowledge := (_state = E_SafeFbState.Error) AND _errAck;
+_pairs[1](
+    In1 := EStopIn1,
+    In2 := EStopIn2,
+    Active1 := _eStopIn1Connected,
+    Active2 := _eStopIn2Connected,
+    MakeContact1 := Parameters.EStopIn1MakeContact,
+    MakeContact2 := Parameters.EStopIn2MakeContact,
+    DiscrepancyTime := Parameters.DiscrepancyTime1,
+    Monitor := _fbRun,
+    SafeInputsAfterDiscError := Parameters.SafeInputsAfterDiscError,
+    Acknowledge := acknowledge
+);
+
+_pairs[2](
+    In1 := EStopIn3,
+    In2 := EStopIn4,
+    Active1 := _eStopIn3Connected,
+    Active2 := _eStopIn4Connected,
+    MakeContact1 := Parameters.EStopIn3MakeContact,
+    MakeContact2 := Parameters.EStopIn4MakeContact,
+    DiscrepancyTime := Parameters.DiscrepancyTime2,
+    Monitor := _fbRun,
+    SafeInputsAfterDiscError := Parameters.SafeInputsAfterDiscError,
+    Acknowledge := acknowledge
+);
+
+_pairs[3](
+    In1 := EStopIn5,
+    In2 := EStopIn6,
+    Active1 := _eStopIn5Connected,
+    Active2 := _eStopIn6Connected,
+    MakeContact1 := Parameters.EStopIn5MakeContact,
+    MakeContact2 := Parameters.EStopIn6MakeContact,
+    DiscrepancyTime := Parameters.DiscrepancyTime3,
+    Monitor := _fbRun,
+    SafeInputsAfterDiscError := Parameters.SafeInputsAfterDiscError,
+    Acknowledge := acknowledge
+);
+
+_pairs[4](
+    In1 := EStopIn7,
+    In2 := EStopIn8,
+    Active1 := _eStopIn7Connected,
+    Active2 := _eStopIn8Connected,
+    MakeContact1 := Parameters.EStopIn7MakeContact,
+    MakeContact2 := Parameters.EStopIn8MakeContact,
+    DiscrepancyTime := Parameters.DiscrepancyTime4,
+    Monitor := _fbRun,
+    SafeInputsAfterDiscError := Parameters.SafeInputsAfterDiscError,
+    Acknowledge := acknowledge
+);
+
+FOR i := 1 TO 4 DO
+    safeRequested := safeRequested OR _pairs[i].SafeStateRequested;
+    discError     := discError OR _pairs[i].DiscrepancyError;
+END_FOR
+
+restartFalling := NOT Restart AND _restartPrev;
+_restartPrev   := Restart;
+
+IF NOT _fbRun AND _state <> E_SafeFbState.Error AND _state <> E_SafeFbState.Reset THEN
+    _state := E_SafeFbState.Stop;
+END_IF
+
+// A discrepancy error is detected in every operating state
+operating := (_state = E_SafeFbState.Safe)
+                 OR (_state = E_SafeFbState.Start)
+                 OR (_state = E_SafeFbState.Run)
+                 OR (_state = E_SafeFbState.DelayOut);
+
+IF discError AND operating THEN
+    UpdateDiscrepancyDiag();
+    _state := E_SafeFbState.Error;
+END_IF
+
+passes := 0;
+
+REPEAT
+    stateBefore := _state;
+
+    CASE _state OF
+        E_SafeFbState.Stop:
+            IF StateChanged() THEN
+                SetOutputsSafe();
+                Error := FALSE;
+                Diag  := 0;
+            END_IF
+
+            IF _fbRun THEN
+                _state := E_SafeFbState.Safe;
+            END_IF
+
+        E_SafeFbState.Safe:
+            IF StateChanged() THEN
+                SetOutputsSafe();
+            END_IF
+
+            // A TRUE restart signal triggers the EDM check immediately (see restart behaviour sample 3)
+            IF Restart THEN
+                IF NOT EdmInputsOk() THEN
+                    _state := E_SafeFbState.Error;
+                ELSIF NOT safeRequested THEN
+                    _state := E_SafeFbState.Start;
+                END_IF
+            END_IF
+
+        E_SafeFbState.Start:
+            IF StateChanged() THEN
+                SetOutputsSafe();
+            END_IF
+
+            IF safeRequested THEN
+                _state := E_SafeFbState.Safe;
+            ELSIF restartFalling THEN
+                IF EdmInputsOk() THEN
+                    _state := E_SafeFbState.Run;
+                ELSE
+                    _state := E_SafeFbState.Error;
+                END_IF
+            END_IF
+
+        E_SafeFbState.Run:
+            IF StateChanged() THEN
+                EStopOut    := TRUE;
+                EStopDelOut := TRUE;
+                StartEdmResetMonitoring();
+            END_IF
+
+            IF NOT EdmResetOk() THEN
+                _state := E_SafeFbState.Error;
+            ELSIF safeRequested THEN
+                IF Parameters.DelayTime > T#0S THEN
+                    _state := E_SafeFbState.DelayOut;
+                ELSE
+                    _state := E_SafeFbState.Safe;
+                END_IF
+            END_IF
+
+        E_SafeFbState.DelayOut:
+            IF StateChanged() THEN
+                EStopOut    := FALSE;
+                EStopDelOut := TRUE;
+                _delayTimer(IN := FALSE, PT := Parameters.DelayTime);
+            END_IF
+
+            _delayTimer(IN := TRUE, PT := Parameters.DelayTime);
+
+            IF _delayTimer.Q THEN
+                _state := E_SafeFbState.Safe;
+            END_IF
+
+        E_SafeFbState.Error:
+            IF StateChanged() THEN
+                SetOutputsSafe();
+                Error := TRUE;
+            END_IF
+
+            UpdateDiscrepancyDiag();
+
+            IF _errAck AND NOT discError THEN
+                _state := E_SafeFbState.Reset;
+            END_IF
+
+        E_SafeFbState.Reset:
+            IF StateChanged() THEN
+                SetOutputsSafe();
+                Error := FALSE;
+                Diag  := 0;
+            END_IF
+
+            IF _errAckFallingEdge THEN
+                _state := SEL(_fbRun, E_SafeFbState.Stop, E_SafeFbState.Safe);
+            END_IF
+    END_CASE
+
+    passes := passes + 1;
+UNTIL (stateBefore = _state) OR (passes >= 3)
+END_REPEAT
+
+State := TO_BYTE(_state);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetOutputsSafe" Id="{a8805a32-b156-5068-bc27-23d04b85556d}">
+      <Declaration><![CDATA[METHOD PRIVATE SetOutputsSafe
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[EStopOut    := FALSE;
+EStopDelOut := FALSE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="StartEdmResetMonitoring" Id="{ae4185f5-ce47-5dcc-a0cb-0b0fba0140b7}">
+      <Declaration><![CDATA[METHOD PRIVATE StartEdmResetMonitoring
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_edm1Dropped := FALSE;
+_edm2Dropped := FALSE;
+_edmResetTimer1(IN := FALSE, PT := Parameters.Edm1ResetTime);
+_edmResetTimer2(IN := FALSE, PT := Parameters.Edm2ResetTime);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="StateChanged" Id="{ede6a4eb-c76c-574d-9f2c-47fbf6a619ae}">
+      <Declaration><![CDATA[METHOD PRIVATE StateChanged : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF _prevState = _state THEN
+    RETURN;
+END_IF
+
+_prevState   := _state;
+StateChanged := TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="UpdateDiscrepancyDiag" Id="{3bcc89d2-1d77-564e-ab8b-ee3a532d9ba4}">
+      <Declaration><![CDATA[// Mirrors the discrepancy state of every pair into the diagnostic bits.
+METHOD PRIVATE UpdateDiscrepancyDiag
+VAR
+    i : USINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[FOR i := 1 TO 4 DO
+    IF _pairs[i].DiscrepancyError THEN
+        SetDiagBit(i - 1);
+
+        IF _pairs[i].AwaitingSafeInputs THEN
+            SetDiagBit(i + 7);
+        ELSE
+            ClearDiagBit(i + 7);
+        END_IF
+    END_IF
+END_FOR
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

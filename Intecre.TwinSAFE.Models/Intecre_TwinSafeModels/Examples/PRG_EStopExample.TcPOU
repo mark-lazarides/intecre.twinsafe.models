@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="PRG_EStopExample" Id="{3a0a9fad-17d0-565d-84a6-eead2cf474e2}" SpecialFunc="None">
+    <Declaration><![CDATA[// Worked example: a two-channel emergency stop with contactor feedback, wired the way a
+// TwinSAFE project links it, plus the standard PLC signals (Run, ErrAck, Restart).
+// The blocks join the group at declaration; call the group before its members.
+// Toggle the "field" variables online to trial the behaviour and watch the State / Diag outputs.
+PROGRAM PRG_EStopExample
+VAR
+    // --- simulated field devices (real hardware in a TwinSAFE system)
+    eStopChannel1 : BOOL := TRUE; // NC contact, TRUE = not pressed
+    eStopChannel2 : BOOL := TRUE;
+
+    // --- standard PLC interface to the TwinSAFE group (linked to standard variables)
+    safetyRun : BOOL := TRUE;
+    safetyErrAck : BOOL;
+    restartButton : BOOL; // 0 -> 1 -> 0 to restart
+
+    // --- TwinSAFE model: the group, then its members (parameters as in the Safety Editor property grid)
+    group : T_SafeGroup;
+    inputTerminal : T_SafeInputTerminal(group := group); // EL1904
+    outputTerminal : T_SafeOutputTerminal(group := group); // EL2904
+    eStop : T_SafeEStop(group := group) := (Parameters := (DiscrepancyTime1 := T#500MS, DelayTime := T#1S));
+
+    // --- simulated contactors: pull in 50 ms after the safe output energises; EDM1 = NOT pulled in
+    contactorPullIn : TON;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// TwinSAFE group: standard PLC signals in; it reads its members' states itself
+group(Run := safetyRun, ErrAck := safetyErrAck);
+
+// Field -> safe input terminal (EL1904)
+inputTerminal(Channel1 := eStopChannel1, Channel2 := eStopChannel2);
+
+// FB ESTOP wired as in the safety project: EStopIn1/2 two channel, EDM1 and Restart from standard signals
+eStop(
+    Restart := restartButton,
+    EDM1 := NOT contactorPullIn.Q,
+    EStopIn1 := inputTerminal.SafeIn1,
+    EStopIn2 := inputTerminal.SafeIn2
+);
+
+// Safe outputs -> output terminal (EL2904) -> field
+outputTerminal(SafeOut1 := eStop.EStopOut, SafeOut2 := eStop.EStopDelOut);
+
+// Simulated contactors follow the field output
+contactorPullIn(IN := outputTerminal.Channel1, PT := T#50MS);
+]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

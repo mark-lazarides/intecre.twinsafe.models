@@ -1,0 +1,102 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="T_SafeEdm_Tests" Id="{9cd20ad8-7fd0-5834-8452-47fa258aa93f}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK T_SafeEdm_Tests EXTENDS TcUnit.FB_TestSuite
+VAR
+    // Test_SwitchOnTimeoutGivesError
+    group_1 : T_SafeGroup;
+    fb_1 : T_SafeEdm(group := group_1) := (Parameters := (SwitchOnTime := T#100MS));
+    state_1 : INT := 10;
+    waitTimer_1 : TON;
+    // Test_NoErrorWhenFeedbackFollows
+    group_2 : T_SafeGroup;
+    fb_2 : T_SafeEdm(group := group_2) := (Parameters := (SwitchOnTime := T#100MS, SwitchOffTime := T#100MS));
+    state_2 : INT := 10;
+    waitTimer_2 : TON;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Test_SwitchOnTimeoutGivesError();
+Test_NoErrorWhenFeedbackFollows();
+]]></ST>
+    </Implementation>
+    <Method Name="Test_NoErrorWhenFeedbackFollows" Id="{f2724108-6ac0-5bcf-aebf-75a90bedea1a}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_NoErrorWhenFeedbackFollows
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+waitTimer_2();
+
+CASE state_2 OF
+    10:
+        state_2 := 20;
+        waitTimer_2(IN := TRUE, PT := T#200MS);
+    20:
+        group_2(Run := TRUE);
+        fb_2(Mon1 := TRUE, Mon2 := FALSE);
+
+        IF NOT waitTimer_2.Q THEN
+            RETURN;
+        END_IF
+
+        waitTimer_2(IN := FALSE);
+        AssertEquals_BOOL(Expected := FALSE, Actual := fb_2.Error, Message := 'no error while feedback is correct');
+        state_2 := 30;
+        waitTimer_2(IN := TRUE, PT := T#200MS);
+    30:
+        // act: switch off, feedback follows immediately
+        group_2(Run := TRUE);
+        fb_2(Mon1 := FALSE, Mon2 := TRUE);
+
+        IF NOT waitTimer_2.Q THEN
+            RETURN;
+        END_IF
+
+        waitTimer_2(IN := FALSE);
+        AssertEquals_BOOL(Expected := FALSE, Actual := fb_2.Error, Message := 'no error after switch-off with feedback');
+        TEST_FINISHED_NAMED(__POUNAME());
+        state_2 := 10;
+END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_SwitchOnTimeoutGivesError" Id="{27af466d-3ba9-5861-87db-c799da121c85}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_SwitchOnTimeoutGivesError
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+waitTimer_1();
+
+CASE state_1 OF
+    10:
+        state_1 := 20;
+        waitTimer_1(IN := TRUE, PT := T#250MS);
+    20:
+        // act: Mon1 on, feedback never follows
+        group_1(Run := TRUE, ErrAck := FALSE);
+        fb_1(Mon1 := TRUE, Mon2 := TRUE);
+
+        IF NOT waitTimer_1.Q THEN
+            RETURN;
+        END_IF
+
+        waitTimer_1(IN := FALSE);
+        // assert
+        AssertEquals_BOOL(Expected := TRUE, Actual := fb_1.Error, Message := 'error when Mon2 does not drop in time');
+        AssertEquals_WORD(Expected := WORD#2, Actual := fb_1.Diag, Message := 'diag bit 1 switch-on timer elapsed');
+        // act: acknowledge (two cycles raised so the group_1 reaches RESET, then released)
+        group_1(Run := TRUE, ErrAck := TRUE);
+        fb_1(Mon1 := TRUE, Mon2 := TRUE);
+        group_1(Run := TRUE, ErrAck := TRUE);
+        fb_1(Mon1 := TRUE, Mon2 := TRUE);
+        group_1(Run := TRUE, ErrAck := FALSE);
+        fb_1(Mon1 := TRUE, Mon2 := FALSE);
+        AssertEquals_BOOL(Expected := FALSE, Actual := fb_1.Error, Message := 'error cleared after acknowledgement');
+        TEST_FINISHED_NAMED(__POUNAME());
+        state_1 := 10;
+END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

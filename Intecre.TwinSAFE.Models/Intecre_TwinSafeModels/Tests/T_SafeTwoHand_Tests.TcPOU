@@ -1,0 +1,105 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="T_SafeTwoHand_Tests" Id="{780ee86f-f419-5d13-a16b-b8e1f56831d3}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK T_SafeTwoHand_Tests EXTENDS TcUnit.FB_TestSuite
+VAR
+    // Test_BothHandsGiveOutputAndReleaseNeedsBothOff
+    group_1 : T_SafeGroup;
+    fb_1 : T_SafeTwoHand(group := group_1);
+    // Test_SecondHandWithoutFirstGivesTwoHandError
+    group_2 : T_SafeGroup;
+    fb_2 : T_SafeTwoHand(group := group_2);
+    // Test_HandDiscrepancyTimeout
+    group_3 : T_SafeGroup;
+    fb_3 : T_SafeTwoHand(group := group_3) := (Parameters := (HandDiscrepancyTime := T#100MS));
+    state_3 : INT := 10;
+    waitTimer_3 : TON;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Test_BothHandsGiveOutputAndReleaseNeedsBothOff();
+Test_SecondHandWithoutFirstGivesTwoHandError();
+Test_HandDiscrepancyTimeout();
+]]></ST>
+    </Implementation>
+    <Method Name="Test_BothHandsGiveOutputAndReleaseNeedsBothOff" Id="{3e52ceae-2193-56a7-a647-eabb19a5a1ae}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_BothHandsGiveOutputAndReleaseNeedsBothOff
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// arrange: single channel per hand
+group_1(Run := TRUE);
+fb_1(Twohand1 := FALSE, Twohand3 := FALSE);
+// act
+group_1(Run := TRUE);
+fb_1(Twohand1 := TRUE, Twohand3 := FALSE);
+AssertEquals_BYTE(Expected := TO_BYTE(E_SafeTwoHandState.OneButton), Actual := fb_1.State, Message := 'state 1BUTTON');
+group_1(Run := TRUE);
+fb_1(Twohand1 := TRUE, Twohand3 := TRUE);
+// assert
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_1.TwoHandOut, Message := 'output on with both hands');
+group_1(Run := TRUE);
+fb_1(Twohand1 := FALSE, Twohand3 := TRUE);
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_1.TwoHandOut, Message := 'output off when one hand released');
+AssertEquals_BYTE(Expected := TO_BYTE(E_SafeTwoHandState.Release), Actual := fb_1.State, Message := 'state RELEASE');
+group_1(Run := TRUE);
+fb_1(Twohand1 := TRUE, Twohand3 := TRUE);
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_1.TwoHandOut, Message := 'no re-trigger until both hands released');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_HandDiscrepancyTimeout" Id="{2cb9a5ab-a849-526b-bb23-158d66947b1e}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_HandDiscrepancyTimeout
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+waitTimer_3();
+
+CASE state_3 OF
+    10:
+        group_3(Run := TRUE);
+        fb_3(Twohand1 := FALSE, Twohand3 := FALSE);
+        state_3 := 20;
+        waitTimer_3(IN := TRUE, PT := T#250MS);
+    20:
+        // act: only one hand for longer than the discrepancy time
+        group_3(Run := TRUE);
+        fb_3(Twohand1 := TRUE, Twohand3 := FALSE);
+
+        IF NOT waitTimer_3.Q THEN
+            RETURN;
+        END_IF
+
+        waitTimer_3(IN := FALSE);
+        // assert
+        AssertEquals_BOOL(Expected := TRUE, Actual := fb_3.Error, Message := 'discrepancy error between hands');
+        AssertEquals_WORD(Expected := WORD#16#0404, Actual := fb_3.Diag, Message := 'diag bits 2 and 10');
+        TEST_FINISHED_NAMED(__POUNAME());
+        state_3 := 10;
+END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_SecondHandWithoutFirstGivesTwoHandError" Id="{eaf3a101-cfee-5bb9-a19c-129cb05e4ce8}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_SecondHandWithoutFirstGivesTwoHandError
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// arrange
+group_2(Run := TRUE);
+fb_2(Twohand1 := FALSE, Twohand3 := FALSE);
+group_2(Run := TRUE);
+fb_2(Twohand1 := TRUE, Twohand3 := FALSE);
+// act: first hand lost as the second is actuated
+group_2(Run := TRUE);
+fb_2(Twohand1 := FALSE, Twohand3 := TRUE);
+// assert
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_2.Error, Message := 'two-hand error');
+AssertEquals_WORD(Expected := WORD#64, Actual := fb_2.Diag, Message := 'diag bit 6');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

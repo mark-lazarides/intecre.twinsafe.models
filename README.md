@@ -22,8 +22,8 @@ Intecre.TwinSAFE.Models/                 TwinCAT solution project (tsproj)
     DUTs/                                state / diag enums and parameter structs
     FunctionBlocks/                      one T_Safe* FB per TwinSAFE FB
     Tests/                               TcUnit suites in ST (T_*_Tests) and FBD (T_*_Tests_FBD) + PRG_TestRunner
-    Examples/                            PRG_EStopExample
-    PlcTask.TcTTO                        runs PRG_TestRunner and PRG_EStopExample
+    Examples/                            PRG_EStopExample (ST) and PRG_EStopExample_CFC (same wiring in CFC)
+    PlcTask.TcTTO                        runs PRG_TestRunner and both examples
 ```
 
 Requirements: TwinCAT 3.1 4026, TcUnit (referenced as `TcUnit, * (www.tcunit.org)`), Tc2_Standard.
@@ -73,32 +73,33 @@ are no public methods.
 * **Parameters** that live in the Safety Editor property grid (contact type, discrepancy and delay times,
   options) are one `Parameters` struct input with defaults, normally set in the declaration:
   `eStop : T_SafeEStop := (Parameters := (DiscrepancyTime1 := T#500MS, DelayTime := T#1S));`
-* **Group signals.** Every FB has `FbRun` (wire from `T_SafeGroup.InRun`; defaults to TRUE for stand-alone
-  use) and `ErrAck` (the group acknowledge). The group learns about its FBs and connections through
-  `AnyFbError`, `AllFbsRunning`, `AnyComError` and `AnyComStartup`, which you wire as OR / AND of the FB
-  `Error` / `IsRunning` and connection `ComError` / `InStartup` outputs. This replaces the implicit
-  membership of a TwinSAFE group with explicit wiring.
+* **Group membership.** Every FB and connection takes its group by reference at initialisation
+  (`eStop : T_SafeEStop(group := group);`) and registers itself, as a block placed in a TwinSAFE group
+  belongs to it. Members read the group's `InRun` and `ErrAck` themselves, and the group scans its
+  members' `Error`, `IsRunning`, `ComError` and `InStartup` outputs each cycle, so there is no group
+  wiring to draw. Call the group before its members; declare it before them (the group is passed by
+  reference, so it must exist when the members initialise). `T_SafeConnShutdown` takes the connection it
+  shuts down the same way: `(group := group, connection := outputTerminal)`.
 
 ```pascal
 VAR
     group          : T_SafeGroup;
-    inputTerminal  : T_SafeInputTerminal;
-    outputTerminal : T_SafeOutputTerminal;
-    eStop          : T_SafeEStop := (Parameters := (DiscrepancyTime1 := T#500MS, DelayTime := T#1S));
+    inputTerminal  : T_SafeInputTerminal(group := group);
+    outputTerminal : T_SafeOutputTerminal(group := group);
+    eStop          : T_SafeEStop(group := group) := (Parameters := (DiscrepancyTime1 := T#500MS, DelayTime := T#1S));
 END_VAR
 
-inputTerminal(Channel1 := fieldEStopNc1, Channel2 := fieldEStopNc2, GroupRun := plcSafetyRun, ErrAck := plcSafetyErrAck);
-group(Run := plcSafetyRun, ErrAck := plcSafetyErrAck,
-      AnyFbError := eStop.Error, AllFbsRunning := eStop.IsRunning,
-      AnyComError := inputTerminal.ComError OR outputTerminal.ComError,
-      AnyComStartup := inputTerminal.InStartup OR outputTerminal.InStartup);
-eStop(FbRun := group.InRun, ErrAck := plcSafetyErrAck,
-      Restart := hmiRestart, EDM1 := contactorFeedback,          // standard PLC signals
+group(Run := plcSafetyRun, ErrAck := plcSafetyErrAck);
+inputTerminal(Channel1 := fieldEStopNc1, Channel2 := fieldEStopNc2);
+eStop(Restart := hmiRestart, EDM1 := contactorFeedback,          // standard PLC signals
       EStopIn1 := inputTerminal.SafeIn1, EStopIn2 := inputTerminal.SafeIn2);
-outputTerminal(SafeOut1 := eStop.EStopOut, GroupRun := plcSafetyRun, ErrAck := plcSafetyErrAck);
+outputTerminal(SafeOut1 := eStop.EStopOut);
 ```
 
-`PRG_EStopExample` is a runnable version of this with a simulated contactor feedback loop.
+`PRG_EStopExample` is a runnable version of this with a simulated contactor feedback loop, and
+`PRG_EStopExample_CFC` is the same program drawn in CFC, the closest standard-PLC equivalent of the Safety
+Editor: one box per block, wired pin to pin, with the group standing alone because membership is fixed at
+declaration.
 
 ### Standard PLC interface
 
@@ -145,8 +146,8 @@ Each is a candidate to revisit once compared against real hardware.
   but STOPERROR would not exist otherwise.
 * The manual says an EL6910 group is in STOPERROR after initialisation when connections are assigned.
   The model starts in STOP and goes to START while connections come up, without needing an ErrAck.
-* The group sees FB and connection states through the pins you wire, so they lag by the execution order
-  of the calls in your program, typically one cycle for FB errors.
+* The group scans its members' outputs when it is called, so it sees FB and connection states from the
+  previous cycle when the group is called first, as recommended.
 * Connections start up once the group `Run` input is TRUE and do not restart when it goes FALSE.
 * SAFE (3), DEACTIVE (16) and WAITCOMERROR (17) group states exist in the enum but are never entered.
 

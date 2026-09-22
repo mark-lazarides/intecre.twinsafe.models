@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="T_SafeSr_Tests" Id="{1d7ca810-c3c7-5427-960e-46985b1d864e}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK T_SafeSr_Tests EXTENDS TcUnit.FB_TestSuite
+VAR
+    // Test_SetDominantLatch
+    group_1 : T_SafeGroup;
+    fb_1 : T_SafeSr(group := group_1);
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Test_SetDominantLatch();
+]]></ST>
+    </Implementation>
+    <Method Name="Test_SetDominantLatch" Id="{0101a96f-fe80-50b6-94a4-1d27727dfa03}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_SetDominantLatch
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// act / assert
+group_1(Run := TRUE);
+fb_1(Set := TRUE, Reset := TRUE);
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_1.SrOut, Message := 'set dominant');
+fb_1(Set := FALSE, Reset := TRUE);
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_1.SrOut, Message := 'reset');
+fb_1(Set := FALSE, Reset := FALSE);
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_1.SrOut, Message := 'held');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

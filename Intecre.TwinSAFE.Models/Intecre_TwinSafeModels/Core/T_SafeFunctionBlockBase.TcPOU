@@ -1,0 +1,96 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="T_SafeFunctionBlockBase" Id="{3ee74026-4686-522f-866c-819b453488a4}" SpecialFunc="None">
+    <Declaration><![CDATA[// Common behaviour of every modelled TwinSAFE function block.
+// A block belongs to a TwinSAFE group from construction: declare it as
+//     eStop : T_SafeEStop(group := safetyGroup);
+// It registers with the group, takes FbRun (group in RUN) and ErrAck from it, and the group
+// reads its Error and IsRunning outputs. Declare the group before its members.
+// Derived classes implement Process() and keep Error, State and Diag up to date.
+FUNCTION_BLOCK ABSTRACT T_SafeFunctionBlockBase
+VAR_OUTPUT
+    Error : BOOL; // FB Error output
+    State : BYTE; // FB state code (Map State)
+    Diag : WORD; // FB diagnostic bits (Map Diag)
+    IsRunning : BOOL; // FB in the RUN state
+END_VAR
+VAR
+    _group : REFERENCE TO T_SafeGroup;
+    _fbRun : BOOL; // group in RUN
+    _errAck : BOOL; // group error acknowledge
+    _errAckPrev : BOOL;
+    _errAckRisingEdge : BOOL;
+    _errAckFallingEdge : BOOL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[_fbRun             := _group.InRun;
+_errAck            := _group.ErrAck;
+_errAckRisingEdge  := _errAck AND NOT _errAckPrev;
+_errAckFallingEdge := NOT _errAck AND _errAckPrev;
+_errAckPrev        := _errAck;
+Process();
+IsRunning := (State = 1);
+]]></ST>
+    </Implementation>
+    <Method Name="ClearDiagBit" Id="{49190d3a-7696-50e6-bca4-a0c8c2d1b475}">
+      <Declaration><![CDATA[METHOD PROTECTED ClearDiagBit
+VAR_INPUT
+    bitIndex : INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[Diag := Diag AND NOT SHL(WORD#1, bitIndex);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="FB_init" Id="{a58f9ad4-60d9-541b-a877-0c3bf5a81984}">
+      <Declaration><![CDATA[METHOD FB_init : BOOL
+VAR_INPUT
+    bInitRetains : BOOL;
+    bInCopyCode : BOOL;
+    group : REFERENCE TO T_SafeGroup; // the TwinSAFE group this block belongs to
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[SetGroupReference(
+    bInCopyCode := bInCopyCode,
+    group := group
+);]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Process" Id="{9011d810-8dad-589f-942f-6deff444fa75}">
+      <Declaration><![CDATA[METHOD PROTECTED ABSTRACT Process
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetDiagBit" Id="{8e5efcfc-fc2b-5a77-a9d5-44f766f6363b}">
+      <Declaration><![CDATA[METHOD PROTECTED SetDiagBit
+VAR_INPUT
+    bitIndex : INT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[Diag := Diag OR SHL(WORD#1, bitIndex);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="SetGroupReference" Id="{4f3224f2-844b-4290-af19-cff0af21d330}">
+      <Declaration><![CDATA[METHOD PUBLIC SetGroupReference : BOOL
+VAR_INPUT
+    bInCopyCode : BOOL;
+    group : REFERENCE TO T_SafeGroup; // the TwinSAFE group this block belongs to
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_group REF= group;
+
+IF NOT bInCopyCode THEN
+    group.RegisterFunctionBlock(THIS^);
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

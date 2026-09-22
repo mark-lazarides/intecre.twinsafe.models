@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="E_SafeEdmState" Id="{dc1d1a43-a154-599b-a2b5-f267c93c1dad}">
+    <Declaration><![CDATA[// FB EDM state codes.
+{attribute 'qualified_only'}
+{attribute 'to_string'}
+TYPE
+E_SafeEdmState :
+(
+    Undefined := 0,
+    Stop := 2,
+    Error := 4,
+    Reset := 5,
+    MonOff := 14,
+    MonOn := 15
+) BYTE;
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

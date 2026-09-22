@@ -1,0 +1,87 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="T_SafeAnd_Tests" Id="{45a06da1-2d29-5b3b-b6bd-2fa13fa7b305}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK T_SafeAnd_Tests EXTENDS TcUnit.FB_TestSuite
+VAR
+    // Test_AllConnectedInputsTrueGivesRun
+    group_1 : T_SafeGroup;
+    fb_1 : T_SafeAnd(group := group_1);
+    // Test_OneInputFalseGivesSafe
+    group_2 : T_SafeGroup;
+    fb_2 : T_SafeAnd(group := group_2);
+    // Test_UnconnectedInputsIgnoredAndMakeContactNegated
+    group_3 : T_SafeGroup;
+    fb_3 : T_SafeAnd(group := group_3) := (Parameters := (In2MakeContact := TRUE));
+    // Test_StoppedGivesNoOutput
+    group_4 : T_SafeGroup;
+    fb_4 : T_SafeAnd(group := group_4);
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Test_AllConnectedInputsTrueGivesRun();
+Test_OneInputFalseGivesSafe();
+Test_UnconnectedInputsIgnoredAndMakeContactNegated();
+Test_StoppedGivesNoOutput();
+]]></ST>
+    </Implementation>
+    <Method Name="Test_AllConnectedInputsTrueGivesRun" Id="{5d2572a6-a40b-5f74-bf0e-83b17b472efc}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_AllConnectedInputsTrueGivesRun
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// act
+group_1(Run := TRUE);
+fb_1(AndIn1 := TRUE, AndIn2 := TRUE);
+// assert
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_1.AndOut, Message := 'output on when all connected inputs are 1');
+AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Run), Actual := fb_1.State, Message := 'state RUN');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_OneInputFalseGivesSafe" Id="{e5203720-bd0d-5164-ae9f-e3897b37edb7}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_OneInputFalseGivesSafe
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// act
+group_2(Run := TRUE);
+fb_2(AndIn1 := TRUE, AndIn2 := FALSE);
+// assert
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_2.AndOut, Message := 'output off when a connected input is 0');
+AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Safe), Actual := fb_2.State, Message := 'state SAFE');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_StoppedGivesNoOutput" Id="{a12b1df7-f2e2-503e-b23c-121c7200db20}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_StoppedGivesNoOutput
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// act
+group_4(Run := FALSE);
+fb_4(AndIn1 := TRUE);
+// assert
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_4.AndOut, Message := 'no output while the group is stopped');
+AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Stop), Actual := fb_4.State, Message := 'state STOP');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_UnconnectedInputsIgnoredAndMakeContactNegated" Id="{e1a0fccf-f72b-53e6-89cb-917a1a635b0c}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_UnconnectedInputsIgnoredAndMakeContactNegated
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// act: AndIn3..8 unconnected, AndIn2 make contact at 0 (released)
+group_3(Run := TRUE);
+fb_3(AndIn1 := TRUE, AndIn2 := FALSE);
+// assert
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_3.AndOut, Message := 'unconnected inputs ignored, make contact negated');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="ST_SafeOpModeParameters" Id="{30fee4da-33a6-5aa3-a934-d5c088d6861a}">
+    <Declaration><![CDATA[// Parameters of FB OPMODE. Manual restart is active when the Restart port is connected.
+TYPE
+ST_SafeOpModeParameters :
+STRUCT
+    DiscrepancyTime : TIME; // max time during a mode change with none or several inputs set. T#0S disables
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

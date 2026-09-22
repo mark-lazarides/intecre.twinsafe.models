@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="T_SafeXor_Tests" Id="{49565ad5-e6ff-5649-9293-99a76926fdec}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK T_SafeXor_Tests EXTENDS TcUnit.FB_TestSuite
+VAR
+    // Test_ConnectedPairsAreExclusiveOr
+    group_1 : T_SafeGroup;
+    fb_1 : T_SafeXor(group := group_1);
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Test_ConnectedPairsAreExclusiveOr();
+]]></ST>
+    </Implementation>
+    <Method Name="Test_ConnectedPairsAreExclusiveOr" Id="{ac003e1f-c9f0-5abe-ba2c-416eccd82f63}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_ConnectedPairsAreExclusiveOr
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// act
+group_1(Run := TRUE);
+fb_1(Xor1In1 := TRUE, Xor2In1 := FALSE);
+// assert
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_1.XorOut1, Message := 'connected pair 1 XOR');
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_1.XorOut2, Message := 'unconnected pair stays 0');
+fb_1(Xor1In1 := TRUE, Xor2In1 := TRUE);
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_1.XorOut1, Message := 'both inputs 1 gives 0');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

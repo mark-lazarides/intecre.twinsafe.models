@@ -1,0 +1,84 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="T_SafeConnection_Tests" Id="{9361764b-6807-5de1-9723-32547c34bb3c}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK T_SafeConnection_Tests EXTENDS TcUnit.FB_TestSuite
+VAR
+    // Test_StartsUpToDataWhenGroupRuns
+    group_1 : T_SafeGroup;
+    conn_1 : T_SafeConnection(group := group_1);
+    i_1 : INT;
+    // Test_ComErrorClearedByAcknowledge
+    group_2 : T_SafeGroup;
+    conn_2 : T_SafeConnection(group := group_2);
+    i_2 : INT;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Test_StartsUpToDataWhenGroupRuns();
+Test_ComErrorClearedByAcknowledge();
+]]></ST>
+    </Implementation>
+    <Method Name="Test_ComErrorClearedByAcknowledge" Id="{bc642fb1-3c80-5afe-aa69-943244d50880}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_ComErrorClearedByAcknowledge
+VAR
+    diag : BYTE;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+
+// arrange
+FOR i_2 := 1 TO 5 DO
+    group_2(Run := TRUE, ErrAck := FALSE);
+    conn_2(InjectComError := FALSE, StartupTime := T#0S);
+END_FOR
+
+// act
+group_2(Run := TRUE, ErrAck := FALSE);
+conn_2(InjectComError := TRUE, StartupTime := T#0S);
+// assert
+AssertEquals_BOOL(Expected := TRUE, Actual := conn_2.ComError, Message := 'com error');
+AssertEquals_BOOL(Expected := FALSE, Actual := conn_2.InDataState, Message := 'dropped out of Data');
+diag := conn_2.Diag AND 16#0F;
+AssertEquals_BYTE(Expected := BYTE#5, Actual := diag, Message := 'diag code watchdog');
+group_2(Run := TRUE, ErrAck := FALSE);
+conn_2(InjectComError := FALSE, StartupTime := T#0S);
+AssertEquals_BYTE(Expected := TO_BYTE(E_SafeGroupState.Error), Actual := group_2.State, Message := 'group ERROR');
+group_2(Run := TRUE, ErrAck := TRUE);
+conn_2(InjectComError := FALSE, StartupTime := T#0S);
+
+FOR i_2 := 1 TO 5 DO
+    group_2(Run := TRUE, ErrAck := FALSE);
+    conn_2(InjectComError := FALSE, StartupTime := T#0S);
+END_FOR
+
+AssertEquals_BOOL(Expected := FALSE, Actual := conn_2.ComError, Message := 'error cleared');
+AssertEquals_BOOL(Expected := TRUE, Actual := conn_2.InDataState, Message := 'restarted to Data');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_StartsUpToDataWhenGroupRuns" Id="{1fc4ea61-801d-5d5e-a964-a1d3a88ba920}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_StartsUpToDataWhenGroupRuns
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// act
+group_1(Run := FALSE);
+conn_1(StartupTime := T#0S);
+AssertEquals_BOOL(Expected := TRUE, Actual := conn_1.InStartup, Message := 'in startup before the group runs');
+
+FOR i_1 := 1 TO 5 DO
+    group_1(Run := TRUE);
+    conn_1(StartupTime := T#0S);
+END_FOR
+
+// assert
+AssertEquals_BOOL(Expected := TRUE, Actual := conn_1.InDataState, Message := 'Data state reached');
+AssertEquals_BOOL(Expected := FALSE, Actual := conn_1.InStartup, Message := 'no longer in startup');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

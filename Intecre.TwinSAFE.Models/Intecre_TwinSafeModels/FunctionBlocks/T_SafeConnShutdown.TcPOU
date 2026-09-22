@@ -1,0 +1,209 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="T_SafeConnShutdown" Id="{c934c9d1-adfc-5658-86a2-e21835d713cd}" SpecialFunc="None">
+    <Declaration><![CDATA[// Model of the TwinSAFE FB CONNECTION SHUTDOWN.
+// Shuts down the assigned connection while the Deactivate inputs are TRUE and reports Deactivated
+// once the connection is shut down (also when the partner shut it down). The connection is assigned
+// at construction (the Connection ID of the Safety Editor):
+//     connShutdown : T_SafeConnShutdown(group := safetyGroup, connection := toolConnection);
+{attribute 'reflection'}
+FUNCTION_BLOCK T_SafeConnShutdown EXTENDS T_SafeFunctionBlockBase
+VAR_INPUT
+    Deactivate1 : BOOL;
+    Deactivate2 : BOOL;
+    Parameters : ST_SafeConnShutdownParameters;
+END_VAR
+VAR_OUTPUT
+    Deactivated : BOOL;
+END_VAR
+VAR
+    {attribute 'is_connected' := 'Deactivate1'}
+    _deactivate1Connected : BOOL;
+    {attribute 'is_connected' := 'Deactivate2'}
+    _deactivate2Connected : BOOL;
+    _connection : REFERENCE TO T_SafeConnection;
+    _pairs : ARRAY[1..1] OF T_SafeInputPair;
+    _state : E_SafeFbState := E_SafeFbState.Stop;
+    _prevState : E_SafeFbState;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[SUPER^();
+]]></ST>
+    </Implementation>
+    <Property Name="ConnShutdownState" Id="{5d698ae8-7618-5480-8699-2ccfc57d567b}">
+      <Declaration><![CDATA[PROPERTY ConnShutdownState : E_SafeFbState
+]]></Declaration>
+      <Get Name="Get" Id="{4f4ed5c0-1de3-5ae6-b66e-2e5dc3509cb7}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[ConnShutdownState := _state;
+]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="FB_init" Id="{72c80b6b-e6fa-574a-8c57-00670bf18ca6}">
+      <Declaration><![CDATA[METHOD FB_init : BOOL
+VAR_INPUT
+    bInitRetains : BOOL;
+    bInCopyCode : BOOL;
+    group : REFERENCE TO T_SafeGroup; // the TwinSAFE group this block belongs to
+    connection : REFERENCE TO T_SafeConnection; // the connection to shut down (Connection ID)
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[// the base FB_init (group registration) is called implicitly by TwinCAT
+_connection REF= connection;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Process" Id="{893cbdbd-5286-5086-9e8f-7f0f0ddb473f}">
+      <Declaration><![CDATA[METHOD PROTECTED Process
+VAR
+    acknowledge : BOOL;
+    deactivate : BOOL;
+    operating : BOOL;
+    stateBefore : E_SafeFbState;
+    passes : USINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[acknowledge := (_state = E_SafeFbState.Error) AND _errAck;
+_pairs[1](
+    In1 := Deactivate1,
+    In2 := Deactivate2,
+    Active1 := _deactivate1Connected,
+    Active2 := _deactivate2Connected,
+    MakeContact1 := Parameters.Deactivate1MakeContact,
+    MakeContact2 := Parameters.Deactivate2MakeContact,
+    DiscrepancyTime := Parameters.DiscrepancyTime,
+    Monitor := _fbRun,
+    SafeInputsAfterDiscError := Parameters.SafeInputsAfterDiscError,
+    Acknowledge := acknowledge
+);
+
+deactivate := _pairs[1].IsActive AND _pairs[1].AllTrue;
+
+IF NOT _fbRun AND _state <> E_SafeFbState.Error AND _state <> E_SafeFbState.Reset THEN
+    _state := E_SafeFbState.Stop;
+END_IF
+
+operating := (_state = E_SafeFbState.Safe) OR (_state = E_SafeFbState.Run);
+
+IF _pairs[1].DiscrepancyError AND operating THEN
+    UpdateDiscrepancyDiag();
+    _state := E_SafeFbState.Error;
+END_IF
+
+passes := 0;
+
+REPEAT
+    stateBefore := _state;
+
+    CASE _state OF
+        E_SafeFbState.Stop:
+            IF StateChanged() THEN
+                Deactivated := FALSE;
+                Error       := FALSE;
+                Diag        := 0;
+            END_IF
+
+            _connection.LocalShutdown := FALSE;
+
+            IF _fbRun THEN
+                _state := E_SafeFbState.Safe;
+            END_IF
+
+        E_SafeFbState.Safe:
+            IF StateChanged() THEN
+                Deactivated := FALSE;
+            END_IF
+
+            _connection.LocalShutdown := deactivate;
+
+            IF _connection.IsShutdown THEN
+                _state := E_SafeFbState.Run;
+            END_IF
+
+        E_SafeFbState.Run:
+            IF StateChanged() THEN
+                Deactivated := TRUE;
+            END_IF
+
+            _connection.LocalShutdown := deactivate;
+
+            IF NOT _connection.IsShutdown THEN
+                _state := E_SafeFbState.Safe;
+            END_IF
+
+        E_SafeFbState.Error:
+            IF StateChanged() THEN
+                Deactivated := FALSE;
+                Error       := TRUE;
+            END_IF
+
+            _connection.LocalShutdown := FALSE;
+            UpdateDiscrepancyDiag();
+
+            IF _errAck AND NOT _pairs[1].DiscrepancyError THEN
+                _state := E_SafeFbState.Reset;
+            END_IF
+
+        E_SafeFbState.Reset:
+            IF StateChanged() THEN
+                Error := FALSE;
+                Diag  := 0;
+            END_IF
+
+            IF _errAckFallingEdge THEN
+                _state := SEL(_fbRun, E_SafeFbState.Stop, E_SafeFbState.Safe);
+            END_IF
+    END_CASE
+
+    passes := passes + 1;
+UNTIL (stateBefore = _state) OR (passes >= 3)
+END_REPEAT
+
+State := TO_BYTE(_state);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="StateChanged" Id="{c0e32665-afa1-5f2b-9c74-fb87fde365d3}">
+      <Declaration><![CDATA[METHOD PRIVATE StateChanged : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF _prevState = _state THEN
+    RETURN;
+END_IF
+
+_prevState   := _state;
+StateChanged := TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="UpdateDiscrepancyDiag" Id="{a609d7c6-7969-5c61-811c-034c7e52e864}">
+      <Declaration><![CDATA[// Mirrors the discrepancy state of every pair into the diagnostic bits.
+METHOD PRIVATE UpdateDiscrepancyDiag
+VAR
+    i : USINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[FOR i := 1 TO 1 DO
+    IF _pairs[i].DiscrepancyError THEN
+        SetDiagBit(0);
+
+        IF _pairs[i].AwaitingSafeInputs THEN
+            SetDiagBit(8);
+        ELSE
+            ClearDiagBit(8);
+        END_IF
+    END_IF
+END_FOR
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

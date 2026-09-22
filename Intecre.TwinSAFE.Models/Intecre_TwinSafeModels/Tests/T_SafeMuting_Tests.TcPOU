@@ -1,0 +1,342 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="T_SafeMuting_Tests" Id="{c85282b9-caf1-55d6-8c17-d732599574b8}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK T_SafeMuting_Tests EXTENDS TcUnit.FB_TestSuite
+VAR
+    // Test_OssdBlockedWithoutMutingGivesSafe
+    group_1 : T_SafeGroup;
+    fb_1 : T_SafeMuting(group := group_1);
+    // Test_SequentialMutingKeepsOutputOn
+    group_2 : T_SafeGroup;
+    fb_2 : T_SafeMuting(group := group_2) := (Parameters := (SequentialInputs := TRUE));
+    // Test_SequenceViolationGivesError
+    group_3 : T_SafeGroup;
+    fb_3 : T_SafeMuting(group := group_3) := (Parameters := (SequentialInputs := TRUE));
+    // Test_TwoSensorParallelSequence
+    group_4 : T_SafeGroup;
+    fb_4 : T_SafeMuting(group := group_4);
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Test_OssdBlockedWithoutMutingGivesSafe();
+Test_SequentialMutingKeepsOutputOn();
+Test_SequenceViolationGivesError();
+Test_TwoSensorParallelSequence();
+]]></ST>
+    </Implementation>
+    <Method Name="Test_OssdBlockedWithoutMutingGivesSafe" Id="{53af24ac-e7d4-5870-b8e6-91c27b55d90e}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_OssdBlockedWithoutMutingGivesSafe
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// arrange: only the protective device connected
+group_1(Run := TRUE);
+fb_1(OSSDIn1 := TRUE);
+group_1(Run := TRUE);
+fb_1(OSSDIn1 := TRUE);
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_1.MuteOut, Message := 'output on with clear protective device');
+// act
+group_1(Run := TRUE);
+fb_1(OSSDIn1 := FALSE);
+// assert
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_1.MuteOut, Message := 'output off when interrupted');
+AssertEquals_BYTE(Expected := TO_BYTE(E_SafeMutingState.Safe), Actual := fb_1.State, Message := 'state SAFE');
+group_1(Run := TRUE);
+fb_1(OSSDIn1 := TRUE);
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_1.MuteOut, Message := 'automatic restart when clear again');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_SequenceViolationGivesError" Id="{d6e4901c-3232-5651-8e58-db1174e3a5fe}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_SequenceViolationGivesError
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// arrange
+group_3(Run := TRUE);
+fb_3(
+    MutingEnable := TRUE,
+    MutingIn1 := FALSE,
+    MutingIn2 := FALSE,
+    MutingIn3 := FALSE,
+    MutingIn4 := FALSE,
+    OSSDIn1 := TRUE
+);
+
+group_3(Run := TRUE);
+fb_3(
+    MutingEnable := TRUE,
+    MutingIn1 := FALSE,
+    MutingIn2 := FALSE,
+    MutingIn3 := FALSE,
+    MutingIn4 := FALSE,
+    OSSDIn1 := TRUE
+);
+
+group_3(Run := TRUE);
+fb_3(
+    MutingEnable := TRUE,
+    MutingIn1 := TRUE,
+    MutingIn2 := FALSE,
+    MutingIn3 := FALSE,
+    MutingIn4 := FALSE,
+    OSSDIn1 := TRUE
+);
+
+// act: OSSD blocked before the second sensor
+group_3(Run := TRUE);
+fb_3(
+    MutingEnable := TRUE,
+    MutingIn1 := TRUE,
+    MutingIn2 := FALSE,
+    MutingIn3 := FALSE,
+    MutingIn4 := FALSE,
+    OSSDIn1 := FALSE
+);
+
+// assert
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_3.Error, Message := 'sequence violation');
+AssertEquals_WORD(Expected := WORD#64, Actual := fb_3.Diag, Message := 'diag bit 6');
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_3.MuteOut, Message := 'output off');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_SequentialMutingKeepsOutputOn" Id="{c6a7cee4-9819-51b8-ac3e-fe5e81a597be}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_SequentialMutingKeepsOutputOn
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// arrange: four single-channel sensors, running
+group_2(Run := TRUE);
+fb_2(
+    MutingEnable := TRUE,
+    MutingIn1 := FALSE,
+    MutingIn2 := FALSE,
+    MutingIn3 := FALSE,
+    MutingIn4 := FALSE,
+    OSSDIn1 := TRUE
+);
+
+group_2(Run := TRUE);
+fb_2(
+    MutingEnable := TRUE,
+    MutingIn1 := FALSE,
+    MutingIn2 := FALSE,
+    MutingIn3 := FALSE,
+    MutingIn4 := FALSE,
+    OSSDIn1 := TRUE
+);
+
+// act: M1, M2, OSSD blocked, M3, M1 off, M4, M2 off, OSSD clear, M3 off, M4 off
+group_2(Run := TRUE);
+fb_2(
+    MutingEnable := TRUE,
+    MutingIn1 := TRUE,
+    MutingIn2 := FALSE,
+    MutingIn3 := FALSE,
+    MutingIn4 := FALSE,
+    OSSDIn1 := TRUE
+);
+
+AssertEquals_BYTE(Expected := TO_BYTE(E_SafeMutingState.Muting1), Actual := fb_2.State, Message := 'MUTING1');
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_2.MutingActive, Message := 'muting active');
+group_2(Run := TRUE);
+fb_2(
+    MutingEnable := TRUE,
+    MutingIn1 := TRUE,
+    MutingIn2 := TRUE,
+    MutingIn3 := FALSE,
+    MutingIn4 := FALSE,
+    OSSDIn1 := TRUE
+);
+
+group_2(Run := TRUE);
+fb_2(
+    MutingEnable := TRUE,
+    MutingIn1 := TRUE,
+    MutingIn2 := TRUE,
+    MutingIn3 := FALSE,
+    MutingIn4 := FALSE,
+    OSSDIn1 := FALSE
+);
+
+AssertEquals_BYTE(Expected := TO_BYTE(E_SafeMutingState.Muting3), Actual := fb_2.State, Message := 'MUTING3');
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_2.MuteOut, Message := 'output stays on while muted');
+group_2(Run := TRUE);
+fb_2(
+    MutingEnable := TRUE,
+    MutingIn1 := TRUE,
+    MutingIn2 := TRUE,
+    MutingIn3 := TRUE,
+    MutingIn4 := FALSE,
+    OSSDIn1 := FALSE
+);
+
+group_2(Run := TRUE);
+fb_2(
+    MutingEnable := TRUE,
+    MutingIn1 := FALSE,
+    MutingIn2 := TRUE,
+    MutingIn3 := TRUE,
+    MutingIn4 := FALSE,
+    OSSDIn1 := FALSE
+);
+
+group_2(Run := TRUE);
+fb_2(
+    MutingEnable := TRUE,
+    MutingIn1 := FALSE,
+    MutingIn2 := TRUE,
+    MutingIn3 := TRUE,
+    MutingIn4 := TRUE,
+    OSSDIn1 := FALSE
+);
+
+group_2(Run := TRUE);
+fb_2(
+    MutingEnable := TRUE,
+    MutingIn1 := FALSE,
+    MutingIn2 := FALSE,
+    MutingIn3 := TRUE,
+    MutingIn4 := TRUE,
+    OSSDIn1 := FALSE
+);
+
+group_2(Run := TRUE);
+fb_2(
+    MutingEnable := TRUE,
+    MutingIn1 := FALSE,
+    MutingIn2 := FALSE,
+    MutingIn3 := TRUE,
+    MutingIn4 := TRUE,
+    OSSDIn1 := TRUE
+);
+
+AssertEquals_BYTE(Expected := TO_BYTE(E_SafeMutingState.Muting8), Actual := fb_2.State, Message := 'MUTING8');
+group_2(Run := TRUE);
+fb_2(
+    MutingEnable := TRUE,
+    MutingIn1 := FALSE,
+    MutingIn2 := FALSE,
+    MutingIn3 := FALSE,
+    MutingIn4 := TRUE,
+    OSSDIn1 := TRUE
+);
+
+group_2(Run := TRUE);
+fb_2(
+    MutingEnable := TRUE,
+    MutingIn1 := FALSE,
+    MutingIn2 := FALSE,
+    MutingIn3 := FALSE,
+    MutingIn4 := FALSE,
+    OSSDIn1 := TRUE
+);
+
+// assert
+AssertEquals_BYTE(Expected := TO_BYTE(E_SafeMutingState.Run), Actual := fb_2.State, Message := 'RUN after the sequence');
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_2.MutingActive, Message := 'muting no longer active');
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_2.Error, Message := 'no error');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_TwoSensorParallelSequence" Id="{9b5f1feb-99b7-5bbd-986f-8a560ec1e607}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_TwoSensorParallelSequence
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// arrange: two two-channel sensors (parallel inputs), running
+group_4(Run := TRUE);
+fb_4(
+    MutingEnable := TRUE,
+    MutingIn1 := FALSE,
+    MutingIn2 := FALSE,
+    MutingIn3 := FALSE,
+    MutingIn4 := FALSE,
+    OSSDIn1 := TRUE
+);
+
+group_4(Run := TRUE);
+fb_4(
+    MutingEnable := TRUE,
+    MutingIn1 := FALSE,
+    MutingIn2 := FALSE,
+    MutingIn3 := FALSE,
+    MutingIn4 := FALSE,
+    OSSDIn1 := TRUE
+);
+
+// act: S1, S2, OSSD blocked, S1 off, OSSD clear, S2 off
+group_4(Run := TRUE);
+fb_4(
+    MutingEnable := TRUE,
+    MutingIn1 := TRUE,
+    MutingIn2 := TRUE,
+    MutingIn3 := FALSE,
+    MutingIn4 := FALSE,
+    OSSDIn1 := TRUE
+);
+
+group_4(Run := TRUE);
+fb_4(
+    MutingEnable := TRUE,
+    MutingIn1 := TRUE,
+    MutingIn2 := TRUE,
+    MutingIn3 := TRUE,
+    MutingIn4 := TRUE,
+    OSSDIn1 := TRUE
+);
+
+group_4(Run := TRUE);
+fb_4(
+    MutingEnable := TRUE,
+    MutingIn1 := TRUE,
+    MutingIn2 := TRUE,
+    MutingIn3 := TRUE,
+    MutingIn4 := TRUE,
+    OSSDIn1 := FALSE
+);
+
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_4.MuteOut, Message := 'output stays on while muted');
+group_4(Run := TRUE);
+fb_4(
+    MutingEnable := TRUE,
+    MutingIn1 := FALSE,
+    MutingIn2 := FALSE,
+    MutingIn3 := TRUE,
+    MutingIn4 := TRUE,
+    OSSDIn1 := FALSE
+);
+
+group_4(Run := TRUE);
+fb_4(
+    MutingEnable := TRUE,
+    MutingIn1 := FALSE,
+    MutingIn2 := FALSE,
+    MutingIn3 := TRUE,
+    MutingIn4 := TRUE,
+    OSSDIn1 := TRUE
+);
+
+group_4(Run := TRUE);
+fb_4(
+    MutingEnable := TRUE,
+    MutingIn1 := FALSE,
+    MutingIn2 := FALSE,
+    MutingIn3 := FALSE,
+    MutingIn4 := FALSE,
+    OSSDIn1 := TRUE
+);
+
+// assert
+AssertEquals_BYTE(Expected := TO_BYTE(E_SafeMutingState.Run), Actual := fb_4.State, Message := 'RUN after the sequence');
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_4.Error, Message := 'no error');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

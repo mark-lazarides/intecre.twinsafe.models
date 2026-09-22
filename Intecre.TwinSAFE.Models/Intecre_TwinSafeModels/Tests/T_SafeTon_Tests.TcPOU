@@ -1,0 +1,54 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="T_SafeTon_Tests" Id="{0246d7a3-1b43-5c52-9a5a-d537dc1999e0}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK T_SafeTon_Tests EXTENDS TcUnit.FB_TestSuite
+VAR
+    // Test_OutputDelayedOn
+    group_1 : T_SafeGroup;
+    fb_1 : T_SafeTon(group := group_1) := (Parameters := (DelayTime := T#100MS));
+    state_1 : INT := 10;
+    waitTimer_1 : TON;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Test_OutputDelayedOn();
+]]></ST>
+    </Implementation>
+    <Method Name="Test_OutputDelayedOn" Id="{8c094113-831d-5f18-a4a7-ca612caea250}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_OutputDelayedOn
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+waitTimer_1();
+
+CASE state_1 OF
+    10:
+        // act
+        group_1(Run := TRUE);
+        fb_1(TonIn1 := TRUE);
+        // assert
+        AssertEquals_BOOL(Expected := FALSE, Actual := fb_1.TonOut, Message := 'output not yet on');
+        AssertEquals_BYTE(Expected := TO_BYTE(E_SafeTonState.DelayIn), Actual := fb_1.State, Message := 'state DELAYIN');
+        state_1 := 20;
+        waitTimer_1(IN := TRUE, PT := T#200MS);
+    20:
+        group_1(Run := TRUE);
+        fb_1(TonIn1 := TRUE);
+
+        IF NOT waitTimer_1.Q THEN
+            RETURN;
+        END_IF
+
+        waitTimer_1(IN := FALSE);
+        // assert
+        AssertEquals_BOOL(Expected := TRUE, Actual := fb_1.TonOut, Message := 'output on after the delay');
+        fb_1(TonIn1 := FALSE);
+        AssertEquals_BOOL(Expected := FALSE, Actual := fb_1.TonOut, Message := 'output off immediately');
+        TEST_FINISHED_NAMED(__POUNAME());
+        state_1 := 10;
+END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

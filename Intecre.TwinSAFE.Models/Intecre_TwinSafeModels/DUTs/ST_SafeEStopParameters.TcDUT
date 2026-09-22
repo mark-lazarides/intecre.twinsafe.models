@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="ST_SafeEStopParameters" Id="{ab2e99d3-e16b-52a6-916b-4aab6d2fd606}">
+    <Declaration><![CDATA[// Parameters of FB ESTOP (port and FB properties of the Safety Editor).
+// Ports are active when connected; a pair is two channel when both ports are connected.
+TYPE
+ST_SafeEStopParameters :
+STRUCT
+    EStopIn1MakeContact : BOOL; // FALSE = break contact (0 requests the safe state); TRUE = make contact
+    EStopIn2MakeContact : BOOL;
+    EStopIn3MakeContact : BOOL;
+    EStopIn4MakeContact : BOOL;
+    EStopIn5MakeContact : BOOL;
+    EStopIn6MakeContact : BOOL;
+    EStopIn7MakeContact : BOOL;
+    EStopIn8MakeContact : BOOL;
+    DiscrepancyTime1 : TIME; // EStopIn1 / EStopIn2. T#0S = no discrepancy monitoring
+    DiscrepancyTime2 : TIME; // EStopIn3 / EStopIn4
+    DiscrepancyTime3 : TIME; // EStopIn5 / EStopIn6
+    DiscrepancyTime4 : TIME; // EStopIn7 / EStopIn8
+    DelayTime : TIME; // switch-off delay of EStopDelOut
+    Edm1ResetTime : TIME; // EL6910: EDM1 must drop within this time of EStopOut switching on. T#0S disables
+    Edm2ResetTime : TIME;
+    SafeInputsAfterDiscError : BOOL := TRUE; // always TRUE on EL6910
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,78 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="T_SafeAnd" Id="{dfa764bc-6411-52e8-b841-f2d8e0793a04}" SpecialFunc="None">
+    <Declaration><![CDATA[// Model of the TwinSAFE FB AND. Connected inputs are active; AndIn1 may be a standard PLC signal.
+{attribute 'reflection'}
+FUNCTION_BLOCK T_SafeAnd EXTENDS T_SafeFunctionBlockBase
+VAR_INPUT
+    AndIn1 : BOOL;
+    AndIn2 : BOOL;
+    AndIn3 : BOOL;
+    AndIn4 : BOOL;
+    AndIn5 : BOOL;
+    AndIn6 : BOOL;
+    AndIn7 : BOOL;
+    AndIn8 : BOOL;
+    Parameters : ST_SafeLogicParameters;
+END_VAR
+VAR_OUTPUT
+    AndOut : BOOL;
+END_VAR
+VAR
+    {attribute 'is_connected' := 'AndIn1'}
+    _andIn1Connected : BOOL;
+    {attribute 'is_connected' := 'AndIn2'}
+    _andIn2Connected : BOOL;
+    {attribute 'is_connected' := 'AndIn3'}
+    _andIn3Connected : BOOL;
+    {attribute 'is_connected' := 'AndIn4'}
+    _andIn4Connected : BOOL;
+    {attribute 'is_connected' := 'AndIn5'}
+    _andIn5Connected : BOOL;
+    {attribute 'is_connected' := 'AndIn6'}
+    _andIn6Connected : BOOL;
+    {attribute 'is_connected' := 'AndIn7'}
+    _andIn7Connected : BOOL;
+    {attribute 'is_connected' := 'AndIn8'}
+    _andIn8Connected : BOOL;
+    _state : E_SafeFbState := E_SafeFbState.Stop;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[SUPER^();
+]]></ST>
+    </Implementation>
+    <Method Name="Process" Id="{366e4848-7809-524f-b755-30adf662f58e}">
+      <Declaration><![CDATA[METHOD PROTECTED Process
+VAR
+    result : BOOL;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[result := TRUE;
+result := result AND F_NormaliseSafeInput(_andIn1Connected, Parameters.In1MakeContact, AndIn1);
+result := result AND F_NormaliseSafeInput(_andIn2Connected, Parameters.In2MakeContact, AndIn2);
+result := result AND F_NormaliseSafeInput(_andIn3Connected, Parameters.In3MakeContact, AndIn3);
+result := result AND F_NormaliseSafeInput(_andIn4Connected, Parameters.In4MakeContact, AndIn4);
+result := result AND F_NormaliseSafeInput(_andIn5Connected, Parameters.In5MakeContact, AndIn5);
+result := result AND F_NormaliseSafeInput(_andIn6Connected, Parameters.In6MakeContact, AndIn6);
+result := result AND F_NormaliseSafeInput(_andIn7Connected, Parameters.In7MakeContact, AndIn7);
+result := result AND F_NormaliseSafeInput(_andIn8Connected, Parameters.In8MakeContact, AndIn8);
+
+IF NOT _fbRun THEN
+    _state := E_SafeFbState.Stop;
+ELSIF result THEN
+    _state := E_SafeFbState.Run;
+ELSE
+    _state := E_SafeFbState.Safe;
+END_IF
+
+AndOut := (_state = E_SafeFbState.Run);
+Error  := FALSE;
+Diag   := 0;
+State  := TO_BYTE(_state);
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

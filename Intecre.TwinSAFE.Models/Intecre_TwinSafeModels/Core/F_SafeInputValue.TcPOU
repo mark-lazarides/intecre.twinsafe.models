@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="F_SafeInputValue" Id="{18fe9edf-5f45-5c5c-a93b-97d24a17f25c}" SpecialFunc="None">
+    <Declaration><![CDATA[// Applies the port configuration to a raw input value for ports that assert a function
+// (Set, Reset, TonIn, OrIn, muting sensors ...). An unconnected port reads FALSE.
+FUNCTION F_SafeInputValue : BOOL
+VAR_INPUT
+    active : BOOL;
+    makeContact : BOOL;
+    value : BOOL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF NOT active THEN
+    F_SafeInputValue := FALSE;
+    RETURN;
+END_IF
+
+F_SafeInputValue := value XOR makeContact;
+]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

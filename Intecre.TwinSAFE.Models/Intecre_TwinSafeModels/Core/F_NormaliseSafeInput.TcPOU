@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="F_NormaliseSafeInput" Id="{0eb51ba5-6778-512a-9982-2530bd233f8b}" SpecialFunc="None">
+    <Declaration><![CDATA[// Applies the port configuration to a raw input value.
+// Result TRUE means "not requesting the safe state" (the released / healthy condition).
+// An unconnected (inactive) port never requests the safe state.
+FUNCTION F_NormaliseSafeInput : BOOL
+VAR_INPUT
+    active : BOOL; // port is connected
+    makeContact : BOOL; // FALSE = break contact (0 requests the safe state), TRUE = make contact (signal negated)
+    value : BOOL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF NOT active THEN
+    F_NormaliseSafeInput := TRUE;
+    RETURN;
+END_IF
+
+F_NormaliseSafeInput := value XOR makeContact;
+]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

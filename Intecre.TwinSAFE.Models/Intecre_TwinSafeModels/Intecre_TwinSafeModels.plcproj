@@ -1,0 +1,356 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <FileVersion>1.0.0.0</FileVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{ea74b86f-ea6c-5546-8926-9cde15ac5bc6}</ProjectGuid>
+    <SubObjectsSortedByName>True</SubObjectsSortedByName>
+    <Name>Intecre_TwinSafeModels</Name>
+    <ProgramVersion>3.1.4026.25</ProgramVersion>
+    <Application>{f546c18b-b0f8-553a-ab78-afc4cbea693e}</Application>
+    <TypeSystem>{215ae13a-a7f6-50b6-9a87-4ac5dfe319f9}</TypeSystem>
+    <Implicit_Task_Info>{fb081ec6-c207-56ca-ba2c-fbb05f5e30be}</Implicit_Task_Info>
+    <Implicit_KindOfTask>{06af1e91-3a72-5da0-8ebb-c81b93e74795}</Implicit_KindOfTask>
+    <Implicit_Jitter_Distribution>{d3bd1677-dd29-5a4c-9112-548469e08b57}</Implicit_Jitter_Distribution>
+    <LibraryReferences>{1f98b8ca-a022-54e4-b5bf-e18d4625e1b8}</LibraryReferences>
+    <Company>Intecre Ltd</Company>
+    <Released>false</Released>
+    <Placeholder>Intecre.TwinSAFE.Models</Placeholder>
+    <Author>Mark Lazarides</Author>
+    <Title>Intecre.TwinSAFE.Models</Title>
+    <DefaultNamespace>Intecre.TwinSAFE.Models</DefaultNamespace>
+    <DocFormat>reStructuredText</DocFormat>
+    <Description>Functional models of the TwinSAFE logic function blocks and TwinSAFE group, for trialling safety applications and their interaction with the standard PLC.</Description>
+    <ProjectVersion>0.1.1.0</ProjectVersion>
+    <POUsForPropertyAccessIncluded>true</POUsForPropertyAccessIncluded>
+    <GlobalVersionStructureIncluded>true</GlobalVersionStructureIncluded>
+    <LibraryCategories>
+      <LibraryCategory xmlns="">
+        <Id>{d7292350-a6c3-11e8-98d0-529269fb1459}</Id>
+        <Version>1.0.0.0</Version>
+        <DefaultName>Intecre Ltd</DefaultName>
+      </LibraryCategory>
+    </LibraryCategories>
+    <SelectedLibraryCategories>
+      <Id xmlns="">{d7292350-a6c3-11e8-98d0-529269fb1459}</Id>
+    </SelectedLibraryCategories>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="PlcTask.TcTTO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Core\F_NormaliseSafeInput.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Core\F_SafeInputValue.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Core\T_SafeConnection.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Core\T_SafeFunctionBlockBase.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Core\T_SafeGroup.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Core\T_SafeInputPair.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Core\T_SafeInputTerminal.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Core\T_SafeOutputTerminal.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\E_SafeConnectionError.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\E_SafeConnectionState.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\E_SafeEdmState.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\E_SafeFbState.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\E_SafeGroupDiag.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\E_SafeGroupState.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\E_SafeLatchState.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\E_SafeMonState.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\E_SafeMutingState.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\E_SafeTonState.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\E_SafeTwoHandState.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\ST_SafeConnShutdownParameters.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\ST_SafeEStopParameters.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\ST_SafeEdmParameters.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\ST_SafeLatchParameters.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\ST_SafeLogicParameters.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\ST_SafeMonParameters.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\ST_SafeMutingParameters.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\ST_SafeOpModeParameters.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\ST_SafeTimerParameters.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs\ST_SafeTwoHandParameters.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Examples\PRG_EStopExample.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Examples\PRG_EStopExample_CFC.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="FunctionBlocks\T_SafeAnd.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="FunctionBlocks\T_SafeConnShutdown.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="FunctionBlocks\T_SafeDecouple.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="FunctionBlocks\T_SafeEStop.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="FunctionBlocks\T_SafeEdm.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="FunctionBlocks\T_SafeMon.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="FunctionBlocks\T_SafeMuting.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="FunctionBlocks\T_SafeOpMode.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="FunctionBlocks\T_SafeOr.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="FunctionBlocks\T_SafeRs.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="FunctionBlocks\T_SafeSr.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="FunctionBlocks\T_SafeTof.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="FunctionBlocks\T_SafeTon.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="FunctionBlocks\T_SafeTwoHand.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="FunctionBlocks\T_SafeXor.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Project Information\F_GetCompany.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Project Information\F_GetTitle.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Project Information\F_GetVersion.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\PRG_TestRunner.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeAnd_Tests.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeAnd_Tests_FBD.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeConnShutdown_Tests.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeConnShutdown_Tests_FBD.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeConnection_Tests.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeConnection_Tests_FBD.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeDecouple_Tests.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeDecouple_Tests_FBD.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeEStop_Tests.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeEStop_Tests_FBD.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeEdm_Tests.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeEdm_Tests_FBD.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeGroup_Tests.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeGroup_Tests_FBD.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeInputPair_Tests.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeInputPair_Tests_FBD.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeMon_Tests.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeMon_Tests_FBD.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeMuting_Tests.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeMuting_Tests_FBD.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeOpMode_Tests.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeOpMode_Tests_FBD.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeOr_Tests.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeOr_Tests_FBD.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeRs_Tests.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeRs_Tests_FBD.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeSr_Tests.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeSr_Tests_FBD.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeTof_Tests.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeTof_Tests_FBD.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeTon_Tests.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeTon_Tests_FBD.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeTwoHand_Tests.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeTwoHand_Tests_FBD.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeXor_Tests.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\T_SafeXor_Tests_FBD.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Version\Global_Version.TcGVL">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Core" />
+    <Folder Include="DUTs" />
+    <Folder Include="Examples" />
+    <Folder Include="FunctionBlocks" />
+    <Folder Include="Project Information" />
+    <Folder Include="Tests" />
+    <Folder Include="Version" />
+  </ItemGroup>
+  <ItemGroup>
+    <PlaceholderReference Include="Tc2_Standard">
+      <DefaultResolution>Tc2_Standard, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc2_Standard</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc2_System">
+      <DefaultResolution>Tc2_System, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc2_System</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="Tc3_Module">
+      <DefaultResolution>Tc3_Module, * (Beckhoff Automation GmbH)</DefaultResolution>
+      <Namespace>Tc3_Module</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="TcUnit">
+      <DefaultResolution>TcUnit, * (www.tcunit.org)</DefaultResolution>
+      <Namespace>TcUnit</Namespace>
+    </PlaceholderReference>
+  </ItemGroup>
+  <ItemGroup>
+    <PlaceholderResolution Include="Tc2_Standard">
+      <Resolution>Tc2_Standard, * (Beckhoff Automation GmbH)</Resolution>
+    </PlaceholderResolution>
+    <PlaceholderResolution Include="Tc2_System">
+      <Resolution>Tc2_System, * (Beckhoff Automation GmbH)</Resolution>
+    </PlaceholderResolution>
+    <PlaceholderResolution Include="Tc3_Module">
+      <Resolution>Tc3_Module, * (Beckhoff Automation GmbH)</Resolution>
+    </PlaceholderResolution>
+    <PlaceholderResolution Include="TcUnit">
+      <Resolution>TcUnit, * (www.tcunit.org)</Resolution>
+    </PlaceholderResolution>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="TwinSafeModels.tmc">
+      <SubType>Content</SubType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Intecre_TwinSafeModels.tmc">
+      <SubType>Content</SubType>
+    </None>
+  </ItemGroup>
+  <ProjectExtensions />
+</Project>

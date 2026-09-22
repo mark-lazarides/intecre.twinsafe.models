@@ -1,0 +1,54 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="T_SafeConnShutdown_Tests" Id="{890d9722-1a28-55d9-ba8b-cfb20b780363}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK T_SafeConnShutdown_Tests EXTENDS TcUnit.FB_TestSuite
+VAR
+    // Test_DeactivateShutsDownConnection
+    group_1 : T_SafeGroup;
+    conn_1 : T_SafeConnection(group := group_1);
+    fb_1 : T_SafeConnShutdown(group := group_1, connection := conn_1);
+    i_1 : INT;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Test_DeactivateShutsDownConnection();
+]]></ST>
+    </Implementation>
+    <Method Name="Test_DeactivateShutsDownConnection" Id="{43cdc765-4ed8-5ff9-a86e-a1b4964d35b2}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_DeactivateShutsDownConnection
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+
+// arrange: connection up
+FOR i_1 := 1 TO 5 DO
+    group_1(Run := TRUE);
+    conn_1(StartupTime := T#0S);
+    fb_1(Deactivate1 := FALSE);
+END_FOR
+
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_1.Deactivated, Message := 'connection up');
+// act
+group_1(Run := TRUE);
+fb_1(Deactivate1 := TRUE);
+conn_1(StartupTime := T#0S);
+fb_1(Deactivate1 := TRUE);
+// assert
+AssertEquals_BOOL(Expected := TRUE, Actual := conn_1.IsShutdown, Message := 'connection shut down');
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_1.Deactivated, Message := 'Deactivated output on');
+
+// act: release
+FOR i_1 := 1 TO 6 DO
+    group_1(Run := TRUE);
+    fb_1(Deactivate1 := FALSE);
+    conn_1(StartupTime := T#0S);
+END_FOR
+
+AssertEquals_BOOL(Expected := TRUE, Actual := conn_1.InDataState, Message := 'connection re-established');
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_1.Deactivated, Message := 'Deactivated output off');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

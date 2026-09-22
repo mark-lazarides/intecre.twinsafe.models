@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="ST_SafeLatchParameters" Id="{f12cc14e-0cc3-5b20-8256-fafbcdb3e372}">
+    <Declaration><![CDATA[// Parameters of FB RS and FB SR.
+TYPE
+ST_SafeLatchParameters :
+STRUCT
+    SetMakeContact : BOOL;
+    ResetMakeContact : BOOL;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

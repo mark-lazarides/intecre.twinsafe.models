@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="T_SafeOr_Tests" Id="{04c9cafe-7788-59b6-a714-e1b30ac42516}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK T_SafeOr_Tests EXTENDS TcUnit.FB_TestSuite
+VAR
+    // Test_AnyConnectedInputTrueGivesRun
+    group_1 : T_SafeGroup;
+    fb_1 : T_SafeOr(group := group_1);
+    // Test_AllFalseGivesSafe
+    group_2 : T_SafeGroup;
+    fb_2 : T_SafeOr(group := group_2);
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Test_AnyConnectedInputTrueGivesRun();
+Test_AllFalseGivesSafe();
+]]></ST>
+    </Implementation>
+    <Method Name="Test_AllFalseGivesSafe" Id="{7edfe92d-179f-53fa-be6a-5be0f61c49b9}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_AllFalseGivesSafe
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// act
+group_2(Run := TRUE);
+fb_2(OrIn1 := FALSE, OrIn2 := FALSE);
+// assert
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_2.OrOut, Message := 'output off when all connected inputs are 0');
+AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Safe), Actual := fb_2.State, Message := 'state SAFE');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_AnyConnectedInputTrueGivesRun" Id="{cf343ecd-ee19-52cd-bcab-51e8b478f6eb}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_AnyConnectedInputTrueGivesRun
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// act
+group_1(Run := TRUE);
+fb_1(OrIn1 := FALSE, OrIn2 := TRUE);
+// assert
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_1.OrOut, Message := 'output on when any connected input is 1');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

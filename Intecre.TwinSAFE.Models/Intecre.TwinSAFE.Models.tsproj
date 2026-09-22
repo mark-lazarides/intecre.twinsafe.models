@@ -9,7 +9,7 @@
 			</Tasks>
 		</System>
 		<Plc>
-			<Project File="TwinSafeModels.xti"/>
+			<Project File="Intecre_TwinSafeModels.xti"/>
 		</Plc>
 	</Project>
 </TcSmProject>

@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="E_SafeTonState" Id="{ca8dc299-734f-5408-9a6b-64869f835c52}">
+    <Declaration><![CDATA[// FB TON state codes.
+{attribute 'qualified_only'}
+{attribute 'to_string'}
+TYPE
+E_SafeTonState :
+(
+    Undefined := 0,
+    Run := 1,
+    Stop := 2,
+    Safe := 3,
+    DelayIn := 9
+) BYTE;
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

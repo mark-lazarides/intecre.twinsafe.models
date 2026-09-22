@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <DUT Name="E_SafeGroupState" Id="{3d2b73c9-c065-54a4-b121-a3c48c25f051}">
+    <Declaration><![CDATA[// TwinSAFE group state codes (EL/EJ6910).
+{attribute 'qualified_only'}
+{attribute 'to_string'}
+TYPE
+E_SafeGroupState :
+(
+    Undefined := 0,
+    Run := 1,
+    Stop := 2,
+    Safe := 3,
+    Error := 4,
+    Reset := 5,
+    Start := 6,
+    StopError := 7,
+    Deactive := 16,
+    WaitComError := 17
+) BYTE;
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

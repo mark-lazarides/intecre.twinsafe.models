@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="T_SafeInputTerminal" Id="{39de9fd9-0e7b-54e9-be56-f19188e443a5}" SpecialFunc="None">
+    <Declaration><![CDATA[// Model of a four channel safe input terminal (EL1904): a TwinSAFE connection with four channels.
+// Declare it in its group:  inputTerminal : T_SafeInputTerminal(group := safetyGroup);
+// Channel1..4 are the simulated field signals; SafeIn1..4 are what the TwinSAFE logic sees:
+// forced FALSE (fail-safe) unless the connection is in the Data state.
+FUNCTION_BLOCK T_SafeInputTerminal EXTENDS T_SafeConnection
+VAR_INPUT
+    Channel1 : BOOL;
+    Channel2 : BOOL;
+    Channel3 : BOOL;
+    Channel4 : BOOL;
+END_VAR
+VAR_OUTPUT
+    SafeIn1 : BOOL;
+    SafeIn2 : BOOL;
+    SafeIn3 : BOOL;
+    SafeIn4 : BOOL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[SUPER^();
+SafeIn1 := Channel1 AND InDataState;
+SafeIn2 := Channel2 AND InDataState;
+SafeIn3 := Channel3 AND InDataState;
+SafeIn4 := Channel4 AND InDataState;
+]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>
