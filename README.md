@@ -31,27 +31,34 @@ Build and trial a safety application, and the standard-PLC code that talks to it
 | | |
 |---|---|
 | TwinCAT | 3.1 build 4026 |
+| Library version | 0.2.0.0 |
 | Libraries | `TcUnit, * (www.tcunit.org)`, `Tc2_Standard`, `Tc2_System`, `Tc3_Module` |
 
 ### Use it
 
-Either open the solution and work in it directly, or install `Intecre_TwinSafeModels.library` from the repository root into the TwinCAT library repository and reference `Intecre.TwinSAFE.Models` from your own project. The PLC project is set up as a library (title `Intecre.TwinSAFE.Models`, company Intecre Ltd, version in `Version/Global_Version.TcGVL`).
+Either open the solution and work in it directly, or install `TwinSafeModels.library` (version 0.2.0.0) from the repository root into the TwinCAT library repository and reference `Intecre.TwinSAFE.Models` from your own project. The PLC project is set up as a library (title `Intecre.TwinSAFE.Models`, company Intecre Ltd, version in the project properties, generated into `Version/Global_Version.TcGVL` and `F_GetVersion`).
 
-The project compiles cleanly in TwinCAT 3.1 4026 (verified with *Check all objects*). See [Tests](#tests) for the state of the TcUnit runs.
+> [!NOTE]
+> `Intecre_TwinSafeModels.library` in the repository root is the earlier 0.1.1.0 build. Install `TwinSafeModels.library` instead.
+
+The project compiles cleanly in TwinCAT 3.1 4026 (verified with *Check all objects*). See [Tests](#tests) for running the TcUnit suites.
 
 ### Solution layout
 
 ```text
 Intecre.TwinSAFE.Models.sln
-Intecre_TwinSafeModels.library           installable library build of the PLC project
+TwinSafeModels.library                   installable library build of the PLC project (0.2.0.0)
+Intecre_TwinSafeModels.library           earlier library build (0.1.1.0)
 Intecre.TwinSAFE.Models/                 TwinCAT solution project (tsproj)
+  _Config/PLC/                           PLC instance configuration
   Intecre_TwinSafeModels/                PLC project (library Intecre.TwinSAFE.Models)
     Core/                                group, connection, terminal models, FB base class, helpers
     DUTs/                                state / diag enums and parameter structs
     FunctionBlocks/                      one T_Safe* FB per TwinSAFE FB
-    Tests/                               TcUnit suites in ST (T_*_Tests) and CFC (T_*_Tests_CFC) + PRG_TestRunner
+    Tests/                               TcUnit suites in ST (T_*_Tests) and CFC (T_*_Tests_CFC), T_SafeCfcTestSuite, PRG_TestRunner
     Examples/                            PRG_EStopExample (ST) and PRG_EStopExample_CFC (same wiring in CFC)
-    PlcTask.TcTTO                        runs PRG_TestRunner and both examples
+    Project Information/, Version/       generated from the project properties (title, company, version)
+    PlcTask.TcTTO                        10 ms task, runs PRG_TestRunner and both examples
 docs/images/                             screenshots used in this README
 ```
 
@@ -80,7 +87,7 @@ docs/images/                             screenshots used in this README
 | EL2904 | `T_SafeOutputTerminal` | inputs | fail-safe outputs unless in Data |
 
 > [!NOTE]
-> Not modelled: TON2 (remaining-time persistence), the analogue and drive blocks (ADD, SUB, MUL, DIV, COMPARE, LIMIT, COUNTER, SCALE, SPEED, LOADSENSING, CAMMONITOR, SLI, SLP, SBT, ADVPOSMON, Envelope, ViolationCounter, safeCAM, safeLookUpTable, safeSequence), and group customising (Deactivate / Passivate).
+> Not modelled: TON2 (remaining-time persistence), the analogue and drive blocks (ADD, SUB, MUL, DIV, COMPARE, LIMIT, COUNTER, SCALE, SPEED, LOADSENSING, CAMMONITOR, SLI, SLP, SBT, ADVPOSMON, Envelope, ViolationCounter, safeCAM, safeLookUpTable, safeSequence), group customising (Deactivate / Passivate), and terminal module errors (*Module error is ComError*).
 
 ## How the pieces fit together
 
@@ -89,7 +96,7 @@ Every block is a plain function block with `VAR_INPUT` / `VAR_OUTPUT` pins named
 - **Ports are active when connected.** Each signal input carries an `{attribute 'is_connected'}` flag, so a pair is two channel when both pins are wired, `Restart` connected means manual restart, `EDMx` connected activates the feedback loop, and so on. Unwired pins are ignored, as inactive ports are in TwinSAFE.
 - **Parameters** that live in the Safety Editor property grid (contact type, discrepancy and delay times, options) are one `Parameters` struct input with defaults, normally set in the declaration:
   `eStop : T_SafeEStop := (Parameters := (DiscrepancyTime1 := T#500MS, DelayTime := T#1S));`
-- **Group membership.** Every FB and connection takes its group by reference at initialisation (`eStop : T_SafeEStop(group := group);`) and registers itself, as a block placed in a TwinSAFE group belongs to it. Members read the group's `InRun` and `ErrAck` themselves, and the group scans its members' `Error`, `IsRunning`, `ComError` and `InStartup` outputs each cycle, so there is no group wiring to draw. Call the group before its members; declare it before them (the group is passed by reference, so it must exist when the members initialise). `T_SafeConnShutdown` takes the connection it shuts down the same way: `(group := group, connection := outputTerminal)`.
+- **Group membership.** Every FB and connection takes its group by reference at initialisation (`eStop : T_SafeEStop(group := group);`) and registers itself, as a block placed in a TwinSAFE group belongs to it. Members read the group's `InRun` and `ErrAck` themselves, and the group scans its members' `Error`, `IsRunning`, `ComError` and `InStartup` outputs each cycle, so there is no group wiring to draw. Call the group before its members; declare it before them (the group is passed by reference, so it must exist when the members initialise). `T_SafeConnShutdown` takes the connection it shuts down the same way: `(group := group, connection := outputTerminal)`. A group holds up to 64 function blocks and 32 connections (`MAX_FUNCTION_BLOCKS`, `MAX_CONNECTIONS` in `T_SafeGroup`); its read-only properties `FunctionBlockCount`, `ConnectionCount` and `GroupState` show what has registered.
 
 ```iecst
 VAR
@@ -147,13 +154,13 @@ What the standard PLC normally links to, and where it is on the models:
 
 | TwinSAFE | Model |
 |---|---|
-| Group Run/Stop, ErrAck, ModuleFault | `T_SafeGroup.Run`, `.ErrAck`, `.ModuleFault` |
+| Group Run/Stop, ErrAck, ModuleFault | `T_SafeGroup.Run` (defaults to TRUE), `.ErrAck`, `.ModuleFault` |
 | Group ComErr, FbErr, OutErr, OtherErr, ComStartup, FbDeactive, FbRun, InRun | outputs of the same name |
 | Group Map State / Map Diag | `T_SafeGroup.State`, `.Diag` (`E_SafeGroupState`, `E_SafeGroupDiag`) |
 | FB Standard-In ports (Restart, EDMx, AndIn1, MutingEnable, Mon1/2) | the FB `VAR_INPUT` of that name |
 | FB Standard-Out ports (Error, xxxOut) | the FB `VAR_OUTPUT` of that name |
 | FB Map State / Map Diag | `State : BYTE`, `Diag : WORD` on every FB |
-| Connection Map State / Map Diag, ComErrAck | `State`, `Diag`, `ComErrAck` on `T_SafeConnection` and the terminals |
+| Connection Map State / Map Diag, ComErrAck | `State`, `Diag`, `ComErrAck` on `T_SafeConnection` and the terminals; set `ComErrAckActive` to require `ComErrAck` as well as the group ErrAck |
 
 ## Input configuration
 
@@ -163,9 +170,9 @@ A port's *Active* setting is its wiring (`is_connected`). *Contact type* is the 
 
 ## Test hooks
 
-- `InjectComError` (rising edge) on `T_SafeConnection` and the terminals simulates an FSoE error with `InjectErrorCode` (default watchdog). `InjectModuleError` on the terminals simulates a module error with *Module error is ComError*.
+- `InjectComError` (rising edge) on `T_SafeConnection` and the terminals simulates an FSoE error with `InjectErrorCode` (default watchdog).
 - `PartnerShutdown` on `T_SafeConnection` simulates a shutdown command from the FSoE partner.
-- `StartupTime` sets how long a connection takes to reach the Data state.
+- `StartupTime` sets how long a connection takes to reach the Data state (default 300 ms).
 
 ## Behaviour notes and assumptions
 
@@ -229,22 +236,13 @@ Where the manual is explicit the models follow it. Where it is silent the follow
 
 ## Tests
 
-`PRG_TestRunner` runs 36 TcUnit suites: 18 in structured text (`T_*_Tests`) and their CFC twins (`T_*_Tests_CFC`), 48 tests each. The CFC suites exercise the blocks the way a TwinSAFE project is authored: each test method is a diagram with the calls down the middle in execution order and, beside each call, the asserts that check it, their `Actual` pins wired straight from the block's output pins as a TwinSAFE network would be wired. The methods use explicit execution order (the sequence the boxes were placed in), so a timed test that calls the same block several times in one diagram runs its calls and asserts in the order written; in auto data flow mode the editor reorders wired boxes and those tests assert at the wrong moment. Timed tests use chained `TON` timers and `R_TRIG` one-shots on the `EN` of the assert boxes instead of the ST `CASE` state machines, so the two versions of a timed test are equivalent rather than identical.
+`PRG_TestRunner` runs 36 TcUnit suites, one ST suite (`T_*_Tests`) and one CFC twin (`T_*_Tests_CFC`) for each of the 16 function blocks, `T_SafeGroup`, `T_SafeConnection` and `T_SafeInputPair`. Each side has 48 tests, 96 in total. The CFC suites exercise the blocks the way a TwinSAFE project is authored: each test method is a diagram with the calls down the middle in execution order and, beside each call, the asserts that check it, their `Actual` pins wired straight from the block's output pins as a TwinSAFE network would be wired. The methods use explicit execution order (the sequence the boxes were placed in), so a timed test that calls the same block several times in one diagram runs its calls and asserts in the order written; in auto data flow mode the editor reorders wired boxes and those tests assert at the wrong moment. Timed tests use chained `TON` timers and `R_TRIG` one-shots on the `EN` of the assert boxes instead of the ST `CASE` state machines, so the two versions of a timed test are equivalent rather than identical.
 
 The CFC suites extend `T_SafeCfcTestSuite` rather than `TcUnit.FB_TestSuite` directly. TcUnit's `TEST` and `TEST_FINISHED_NAMED` are functions without a return type, and a CFC box for a function must carry a return pin, so that small base class wraps them as the methods `StartTest` and `FinishTest` that the diagrams call.
 
-Activate the configuration, log in, and read the results in the TwinCAT error list or through the TcUnit xUnit output. Timed tests use 50 to 900 ms waits, so a full run takes a few seconds.
+Activate the configuration, log in, and read the results in the TwinCAT error list or through the TcUnit xUnit output. `PlcTask` (10 ms) runs `PRG_TestRunner` alongside the two examples. Timed tests use waits of 10 to 400 ms, so a full run takes a few seconds.
 
-### Run history
-
-| Date | Version | Result |
-|---|---|---|
-| 14 Sep 2026 | previous group design (explicit `FbRun` / `ErrAck` wiring) | all 96 tests passed after two fixes, see below |
-| 22 Sep 2026 | group membership by reference, FBD twins | all passed except two asserts in the FBD group connection test, which read the group on its first cycle before the terminal had run; the CFC version asserts one cycle later |
-| 22 Sep 2026 | CFC twins replace the FBD twins, explicit execution order, group membership by reference | all 96 tests passed |
-
-The first run showed about 70 failures from one cause, state-entry actions running one call late; the blocks now re-evaluate their state `CASE` until it settles so outputs switch in the same cycle as the transition, as a TwinSAFE FB does. The last two failures were assert timing in the graphical group tests (then FBD, now CFC). That run also confirmed the `is_connected` semantics the ST suites rely on: a pin passed in the call `fb(Pin := x)` reads as connected, an omitted pin as unconnected.
-
+The ST suites rely on the `is_connected` semantics: a pin passed in the call `fb(Pin := x)` reads as connected, an omitted pin as unconnected.
 
 ## Conventions
 
