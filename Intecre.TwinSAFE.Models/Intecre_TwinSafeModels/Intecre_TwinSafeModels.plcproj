@@ -20,8 +20,10 @@
     <Title>Intecre.TwinSAFE.Models</Title>
     <DefaultNamespace>Intecre.TwinSAFE.Models</DefaultNamespace>
     <DocFormat>reStructuredText</DocFormat>
-    <Description>Functional models of the TwinSAFE logic function blocks and TwinSAFE group, for trialling safety applications and their interaction with the standard PLC.</Description>
-    <ProjectVersion>0.2.0.0</ProjectVersion>
+    <Description>Functional models of the TwinSAFE logic function blocks and TwinSAFE group, for trialling safety applications and their interaction with the standard PLC.
+
+0.3.0.0 - Adds User FB examples, demonstrating extension.</Description>
+    <ProjectVersion>0.3.0.0</ProjectVersion>
     <POUsForPropertyAccessIncluded>true</POUsForPropertyAccessIncluded>
     <GlobalVersionStructureIncluded>true</GlobalVersionStructureIncluded>
     <LibraryCategories>

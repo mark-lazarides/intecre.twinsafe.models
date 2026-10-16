@@ -23,6 +23,7 @@ Build and trial a safety application, and the standard-PLC code that talks to it
 - [Behaviour notes and assumptions](#behaviour-notes-and-assumptions)
 - [Tests](#tests)
 - [Conventions](#conventions)
+- [Version history](#version-history)
 
 ## Getting started
 
@@ -31,15 +32,15 @@ Build and trial a safety application, and the standard-PLC code that talks to it
 | | |
 |---|---|
 | TwinCAT | 3.1 build 4026 |
-| Library version | 0.2.0.0 |
+| Library version | 0.3.0.0 |
 | Libraries | `TcUnit, * (www.tcunit.org)`, `Tc2_Standard`, `Tc2_System`, `Tc3_Module` |
 
 ### Use it
 
-Either open the solution and work in it directly, or install `TwinSafeModels.library` (version 0.2.0.0) from the repository root into the TwinCAT library repository and reference `Intecre.TwinSAFE.Models` from your own project. The PLC project is set up as a library (title `Intecre.TwinSAFE.Models`, company Intecre Ltd, version in the project properties, generated into `Version/Global_Version.TcGVL` and `F_GetVersion`).
+Either open the solution and work in it directly, or install `Intecre_TwinSafeModels.library` (version 0.3.0.0) from the repository root into the TwinCAT library repository and reference `Intecre.TwinSAFE.Models` from your own project. The PLC project is set up as a library (title `Intecre.TwinSAFE.Models`, company Intecre Ltd, version in the project properties, generated into `Version/Global_Version.TcGVL` and `F_GetVersion`).
 
 > [!NOTE]
-> `Intecre_TwinSafeModels.library` in the repository root is the earlier 0.1.1.0 build. Install `TwinSafeModels.library` instead.
+> The 0.2.0.0 build was shipped as `TwinSafeModels.library`; from 0.3.0.0 the file is `Intecre_TwinSafeModels.library` again, matching the PLC project name. Both install as `Intecre.TwinSAFE.Models` in the library repository, so check the version rather than the file name.
 
 The project compiles cleanly in TwinCAT 3.1 4026 (verified with *Check all objects*). See [Tests](#tests) for running the TcUnit suites.
 
@@ -47,8 +48,7 @@ The project compiles cleanly in TwinCAT 3.1 4026 (verified with *Check all objec
 
 ```text
 Intecre.TwinSAFE.Models.sln
-TwinSafeModels.library                   installable library build of the PLC project (0.2.0.0)
-Intecre_TwinSafeModels.library           earlier library build (0.1.1.0)
+Intecre_TwinSafeModels.library           installable library build of the PLC project (0.3.0.0)
 Intecre.TwinSAFE.Models/                 TwinCAT solution project (tsproj)
   _Config/PLC/                           PLC instance configuration
   Intecre_TwinSafeModels/                PLC project (library Intecre.TwinSAFE.Models)
@@ -56,6 +56,7 @@ Intecre.TwinSAFE.Models/                 TwinCAT solution project (tsproj)
     DUTs/                                state / diag enums and parameter structs
     FunctionBlocks/                      one T_Safe* FB per TwinSAFE FB
     Tests/                               TcUnit suites in ST (T_*_Tests) and CFC (T_*_Tests_CFC), T_SafeCfcTestSuite, PRG_TestRunner
+      User_FB_Tests/                     suites for the example user FBs (T_*_UserFB_Tests and their CFC twins)
     Examples/                            PRG_EStopExample (ST) and PRG_EStopExample_CFC (same wiring in CFC)
       Example_UserFbs/                   T_SafePulse_UserFB and T_SafeRTrig_UserFB, example user FBs with Process drawn in CFC
     Project Information/, Version/       generated from the project properties (title, company, version)
@@ -118,7 +119,9 @@ outputTerminal(SafeOut1 := eStop.EStopOut);
 
 ### User function blocks
 
-A TwinSAFE *user FB* (a reusable block made of standard blocks) is modelled by extending `T_SafeFunctionBlockBase` in the consuming application: declare the pins, hold the inner library blocks as members, implement `Process` (in ST or as a CFC diagram) and the block joins the group like any other. Members initialise before the containing block, so the inner blocks are declared with the composite's own `_group` reference, which is still empty at that moment; the composite's FB_init then passes the real group on with `SetGroupReference`. Registration is ignored while a reference is invalid and repeated registration is harmless, so this is safe.
+A TwinSAFE *user FB* (a reusable block made of standard blocks) is modelled by extending `T_SafeFunctionBlockBase` in the consuming application. Three parts make a composite block; `T_SafePulse_UserFB` from `Examples/Example_UserFbs` is used as the example throughout.
+
+**1. Declaration.** Declare the pins as `VAR_INPUT` / `VAR_OUTPUT` with their TwinSAFE names and hold the inner library blocks as members. The members are constructed with the composite's own `_group` reference, inherited from the base class. Members initialise before the block that contains them, so `_group` is still empty at that moment; that is expected, and a block without a valid group simply behaves as a stopped block until it is given one.
 
 ```iecst
 FUNCTION_BLOCK T_SafePulse_UserFB EXTENDS T_SafeFunctionBlockBase
@@ -135,6 +138,8 @@ VAR
 END_VAR
 ```
 
+**2. FB_init.** Declare `FB_init` with the same three parameters as the base class. TwinCAT calls the base `FB_init` implicitly with them, which registers the composite itself with the group (do not call `SUPER^.FB_init` yourself; the compiler rejects it as already called). The body then hands the real group on to each inner block with `SetGroupReference`, so the inner blocks register as well and take `FbRun` and `ErrAck` from the group like any other member. Forward `bInCopyCode` as shown: an online-change copy must not register a second time. Registering twice with the same group is harmless and registration with an invalid reference is ignored, so the order of initialisation never matters.
+
 ```iecst
 METHOD FB_init : BOOL
 VAR_INPUT
@@ -147,9 +152,25 @@ safeTon.SetGroupReference(bInCopyCode := bInCopyCode, group := group);
 safeAnd.SetGroupReference(bInCopyCode := bInCopyCode, group := group);
 ```
 
-The application then declares it beside the standard blocks: `acceptanceWindow : T_SafePulse_UserFB(group := safeGroup);`. `T_SafeConnection` and the terminals have the same `SetGroupReference` method, so a composite can contain a connection too. A block that has not been given a valid group behaves as a stopped block, and a connection stays in its initial fail-safe state.
+![FB_init of T_SafePulse_UserFB in the TwinCAT editor](docs/images/user-fb-pulse-fb-init.png)
 
-`Examples/Example_UserFbs` holds two such blocks with `Process` drawn in CFC: `T_SafePulse_UserFB` (the block above: `TonOut` is a pulse of `DelayTime` while `TonIn1` is held, a TON and an AND) and `T_SafeRTrig_UserFB` (`Trigger` is on for one cycle on the rising edge of `Signal`, an RS and an AND). The RTrig diagram uses explicit execution order with the AND before the RS, so the AND reads the latch's previous value as a Safety Editor network numbered that way would; in auto data flow mode the editor would run the RS first and the trigger would never fire. Both blocks have test suites, `T_SafePulse_UserFB_Tests` and `T_SafeRTrig_UserFB_Tests`, with CFC twins.
+*The same `FB_init` in a project that uses the library, where the group type carries the library namespace.*
+
+**3. Process.** Implement the protected `Process` method, in ST or as a CFC diagram, calling the inner blocks and wiring the composite's pins to theirs. The base body runs every cycle: it reads `InRun` and `ErrAck` from the group, calls `Process`, then derives `IsRunning` from `State`. Writing `IsRunning` inside `Process` therefore has no effect; set `State` (and `Error`, `Diag`) in `Process` if the application reads them from the composite, otherwise they stay at their defaults and the group's `FbRun` output stays FALSE while the composite is registered.
+
+The application then declares the block beside the standard ones: `acceptanceWindow : T_SafePulse_UserFB(group := safeGroup);`. `T_SafeConnection` and the terminals have the same `SetGroupReference` method, so a composite can contain a connection too; a connection without a valid group stays in its initial fail-safe state.
+
+#### The two examples
+
+`T_SafePulse_UserFB` makes a pulse: `TonIn1` feeds a TON and one AND input, and the TON output is negated into the other AND input, so `TonOut` is on from the rising edge of `TonIn1` until `DelayTime` has elapsed or the input drops. It is the acceptance window in the screenshot at the top of this page.
+
+![T_SafePulse_UserFB Process drawn in CFC](docs/images/user-fb-pulse-cfc.png)
+
+*`Process` of `T_SafePulse_UserFB`: the composite's pins on the left and right, the two inner blocks in between, wired as the TwinSAFE user FB would be.*
+
+`T_SafeRTrig_UserFB` detects a rising edge: `Signal` sets an RS latch and, negated, resets it; an AND combines `Signal` with the negated latch output, so `Trigger` is on for the one cycle in which `Signal` is on and the latch has not yet caught up. That only works if the AND executes before the RS, so the diagram uses explicit execution order (right-click the CFC editor, *Execution Order*) with the AND first, as a Safety Editor network numbered AND = 1, RS = 2 would read the latch's previous value. In auto data flow mode the editor runs the RS first and the trigger never fires.
+
+Both blocks have test suites under `Tests/User_FB_Tests`, `T_SafePulse_UserFB_Tests` and `T_SafeRTrig_UserFB_Tests` with CFC twins, covering the pulse timing, the one-cycle trigger, the stopped group and the registration of the composite and its inner blocks (`FunctionBlockCount` = 3).
 
 ## Standard PLC interface
 
@@ -250,3 +271,11 @@ The ST suites rely on the `is_connected` semantics: a pin passed in the call `fb
 ## Conventions
 
 Blocks use the `T_` prefix, private members `_camelCase`, and state machines use `CASE` with a `StateChanged()` entry pattern. Deliberately unlike the house class style, the blocks expose only `VAR_INPUT` / `VAR_OUTPUT` pins and no public methods other than `SetGroupReference`, so they behave like their TwinSAFE equivalents and wire up in FBD and CFC.
+
+## Version history
+
+| Version | Date | Changes |
+|---|---|---|
+| 0.3.0.0 | 2026-10-16 | Example user FBs `T_SafePulse_UserFB` and `T_SafeRTrig_UserFB` under `Examples/Example_UserFbs`, showing how a composite block is declared and how its `FB_init` passes the group on, with TcUnit suites (ST and CFC twins) under `Tests/User_FB_Tests`. Library file is `Intecre_TwinSafeModels.library` again. |
+| 0.2.0.0 | 2026-09-22 | Group membership by reference (`FB_init(group := ...)`, `SetGroupReference` for composite blocks) with guards for a missing group; FBD test suites and example replaced by CFC twins on `T_SafeCfcTestSuite`. Shipped as `TwinSafeModels.library`. |
+| 0.1.1.0 | 2026-09-14 | First release: the 16 logic FBs, the group, connection and terminal models, with ST and FBD TcUnit suites. |
