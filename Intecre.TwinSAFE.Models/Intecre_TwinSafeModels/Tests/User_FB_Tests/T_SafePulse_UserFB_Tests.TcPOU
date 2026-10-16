@@ -1,0 +1,122 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="T_SafePulse_UserFB_Tests" Id="{ae9bbc38-f6fc-593d-9a5b-2dfc7176842d}" SpecialFunc="None">
+    <Declaration><![CDATA[// Tests of the example user FB T_SafePulse_UserFB: TonOut is a pulse of DelayTime while TonIn1 is held.
+FUNCTION_BLOCK T_SafePulse_UserFB_Tests EXTENDS TcUnit.FB_TestSuite
+VAR
+    // Test_PulseForDelayTimeWhileInputHeld
+    group_1 : T_SafeGroup;
+    fb_1 : T_SafePulse_UserFB(group := group_1) := (Parameters := (DelayTime := T#100MS));
+    state_1 : INT := 10;
+    waitTimer_1 : TON;
+    // Test_PulseEndsWhenInputDrops
+    group_2 : T_SafeGroup;
+    fb_2 : T_SafePulse_UserFB(group := group_2) := (Parameters := (DelayTime := T#100MS));
+    // Test_StoppedGivesNoOutput
+    group_3 : T_SafeGroup;
+    fb_3 : T_SafePulse_UserFB(group := group_3) := (Parameters := (DelayTime := T#100MS));
+    // Test_InnerBlocksJoinTheGroup
+    group_4 : T_SafeGroup;
+    fb_4 : T_SafePulse_UserFB(group := group_4);
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Test_PulseForDelayTimeWhileInputHeld();
+Test_PulseEndsWhenInputDrops();
+Test_StoppedGivesNoOutput();
+Test_InnerBlocksJoinTheGroup();
+]]></ST>
+    </Implementation>
+    <Method Name="Test_InnerBlocksJoinTheGroup" Id="{45d62550-6cfd-5991-baca-9040b4aceb47}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_InnerBlocksJoinTheGroup
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// assert: the composite registered itself and passed the group on to its TON and AND
+AssertEquals_UINT(Expected := 3, Actual := group_4.FunctionBlockCount, Message := 'composite and its two inner blocks registered');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_PulseEndsWhenInputDrops" Id="{25ddfa83-2c3a-5939-a727-09691487726c}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_PulseEndsWhenInputDrops
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// act / assert
+group_2(Run := TRUE);
+fb_2(TonIn1 := TRUE);
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_2.TonOut, Message := 'pulse on');
+fb_2(TonIn1 := FALSE);
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_2.TonOut, Message := 'pulse cut off when the input drops');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_PulseForDelayTimeWhileInputHeld" Id="{db6cdcc5-9d40-5a3b-9a32-4b29a2311a56}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_PulseForDelayTimeWhileInputHeld
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+waitTimer_1();
+
+CASE state_1 OF
+    10:
+        // act: input on, the pulse starts
+        group_1(Run := TRUE);
+        fb_1(TonIn1 := TRUE);
+        // assert
+        AssertEquals_BOOL(Expected := TRUE, Actual := fb_1.TonOut, Message := 'pulse starts with the input');
+        state_1 := 20;
+        waitTimer_1(IN := TRUE, PT := T#50MS);
+    20:
+        group_1(Run := TRUE);
+        fb_1(TonIn1 := TRUE);
+
+        IF NOT waitTimer_1.Q THEN
+            RETURN;
+        END_IF
+
+        waitTimer_1(IN := FALSE);
+        // assert: still inside the delay time
+        AssertEquals_BOOL(Expected := TRUE, Actual := fb_1.TonOut, Message := 'pulse still on inside the delay time');
+        state_1 := 30;
+        waitTimer_1(IN := TRUE, PT := T#200MS);
+    30:
+        group_1(Run := TRUE);
+        fb_1(TonIn1 := TRUE);
+
+        IF NOT waitTimer_1.Q THEN
+            RETURN;
+        END_IF
+
+        waitTimer_1(IN := FALSE);
+        // assert: the delay has elapsed, the pulse is over although the input is still held
+        AssertEquals_BOOL(Expected := FALSE, Actual := fb_1.TonOut, Message := 'pulse ends after the delay time');
+        // act: release and re-apply the input
+        fb_1(TonIn1 := FALSE);
+        AssertEquals_BOOL(Expected := FALSE, Actual := fb_1.TonOut, Message := 'no output with the input off');
+        fb_1(TonIn1 := TRUE);
+        AssertEquals_BOOL(Expected := TRUE, Actual := fb_1.TonOut, Message := 'a new pulse starts on the next rising edge');
+        TEST_FINISHED_NAMED(__POUNAME());
+        state_1 := 10;
+END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_StoppedGivesNoOutput" Id="{8d5a6f88-628f-533a-899d-eb2692c0defa}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_StoppedGivesNoOutput
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// act
+group_3(Run := FALSE);
+fb_3(TonIn1 := TRUE);
+// assert
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_3.TonOut, Message := 'no output while the group is stopped');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

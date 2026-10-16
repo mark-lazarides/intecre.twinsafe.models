@@ -1,0 +1,71 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="T_SafeRTrig_UserFB_Tests" Id="{dc2d37cb-e664-5536-88d3-20a7e71f3fe9}" SpecialFunc="None">
+    <Declaration><![CDATA[// Tests of the example user FB T_SafeRTrig_UserFB: Trigger is on for one cycle on the rising edge of Signal.
+FUNCTION_BLOCK T_SafeRTrig_UserFB_Tests EXTENDS TcUnit.FB_TestSuite
+VAR
+    // Test_TriggerForOneCycleOnRisingEdge
+    group_1 : T_SafeGroup;
+    fb_1 : T_SafeRTrig_UserFB(group := group_1);
+    // Test_StoppedGivesNoOutput
+    group_2 : T_SafeGroup;
+    fb_2 : T_SafeRTrig_UserFB(group := group_2);
+    // Test_InnerBlocksJoinTheGroup
+    group_3 : T_SafeGroup;
+    fb_3 : T_SafeRTrig_UserFB(group := group_3);
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Test_TriggerForOneCycleOnRisingEdge();
+Test_StoppedGivesNoOutput();
+Test_InnerBlocksJoinTheGroup();
+]]></ST>
+    </Implementation>
+    <Method Name="Test_InnerBlocksJoinTheGroup" Id="{a84940b4-9797-5c14-94ba-82bdcc4075b5}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_InnerBlocksJoinTheGroup
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// assert: the composite registered itself and passed the group on to its RS and AND
+AssertEquals_UINT(Expected := 3, Actual := group_3.FunctionBlockCount, Message := 'composite and its two inner blocks registered');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_StoppedGivesNoOutput" Id="{e5124b09-93cc-507c-9d79-808a27ccf2d7}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_StoppedGivesNoOutput
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// act
+group_2(Run := FALSE);
+fb_2(Signal := TRUE);
+// assert
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_2.Trigger, Message := 'no output while the group is stopped');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_TriggerForOneCycleOnRisingEdge" Id="{4ceb6796-8026-5053-8a11-70abdd9a2cad}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_TriggerForOneCycleOnRisingEdge
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// act / assert
+group_1(Run := TRUE);
+fb_1(Signal := FALSE);
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_1.Trigger, Message := 'no trigger while the signal is off');
+fb_1(Signal := TRUE);
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_1.Trigger, Message := 'trigger on the rising edge');
+fb_1(Signal := TRUE);
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_1.Trigger, Message := 'trigger lasts one cycle');
+fb_1(Signal := FALSE);
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_1.Trigger, Message := 'no trigger on the falling edge');
+fb_1(Signal := TRUE);
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_1.Trigger, Message := 'triggers again on the next rising edge');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

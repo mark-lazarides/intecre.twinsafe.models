@@ -22,6 +22,8 @@ VAR
     safeConnectionTests             : T_SafeConnection_Tests;
     safeConnShutdownTests           : T_SafeConnShutdown_Tests;
     safeGroupTests                  : T_SafeGroup_Tests;
+    safePulseUserFbTests            : T_SafePulse_UserFB_Tests;
+    safeRTrigUserFbTests            : T_SafeRTrig_UserFB_Tests;
 
     // CFC twins of the suites above
     safeAndTestsCfc                 : T_SafeAnd_Tests_CFC;
@@ -42,6 +44,8 @@ VAR
     safeConnectionTestsCfc          : T_SafeConnection_Tests_CFC;
     safeConnShutdownTestsCfc        : T_SafeConnShutdown_Tests_CFC;
     safeGroupTestsCfc               : T_SafeGroup_Tests_CFC;
+    safePulseUserFbTestsCfc         : T_SafePulse_UserFB_Tests_CFC;
+    safeRTrigUserFbTestsCfc         : T_SafeRTrig_UserFB_Tests_CFC;
 END_VAR
 ]]></Declaration>
     <Implementation>

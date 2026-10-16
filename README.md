@@ -57,6 +57,7 @@ Intecre.TwinSAFE.Models/                 TwinCAT solution project (tsproj)
     FunctionBlocks/                      one T_Safe* FB per TwinSAFE FB
     Tests/                               TcUnit suites in ST (T_*_Tests) and CFC (T_*_Tests_CFC), T_SafeCfcTestSuite, PRG_TestRunner
     Examples/                            PRG_EStopExample (ST) and PRG_EStopExample_CFC (same wiring in CFC)
+      Example_UserFbs/                   T_SafePulse_UserFB and T_SafeRTrig_UserFB, example user FBs with Process drawn in CFC
     Project Information/, Version/       generated from the project properties (title, company, version)
     PlcTask.TcTTO                        10 ms task, runs PRG_TestRunner and both examples
 docs/images/                             screenshots used in this README
@@ -148,6 +149,8 @@ safeAnd.SetGroupReference(bInCopyCode := bInCopyCode, group := group);
 
 The application then declares it beside the standard blocks: `acceptanceWindow : T_SafePulse_UserFB(group := safeGroup);`. `T_SafeConnection` and the terminals have the same `SetGroupReference` method, so a composite can contain a connection too. A block that has not been given a valid group behaves as a stopped block, and a connection stays in its initial fail-safe state.
 
+`Examples/Example_UserFbs` holds two such blocks with `Process` drawn in CFC: `T_SafePulse_UserFB` (the block above: `TonOut` is a pulse of `DelayTime` while `TonIn1` is held, a TON and an AND) and `T_SafeRTrig_UserFB` (`Trigger` is on for one cycle on the rising edge of `Signal`, an RS and an AND). The RTrig diagram uses explicit execution order with the AND before the RS, so the AND reads the latch's previous value as a Safety Editor network numbered that way would; in auto data flow mode the editor would run the RS first and the trigger would never fire. Both blocks have test suites, `T_SafePulse_UserFB_Tests` and `T_SafeRTrig_UserFB_Tests`, with CFC twins.
+
 ## Standard PLC interface
 
 What the standard PLC normally links to, and where it is on the models:
@@ -236,7 +239,7 @@ Where the manual is explicit the models follow it. Where it is silent the follow
 
 ## Tests
 
-`PRG_TestRunner` runs 36 TcUnit suites, one ST suite (`T_*_Tests`) and one CFC twin (`T_*_Tests_CFC`) for each of the 16 function blocks, `T_SafeGroup`, `T_SafeConnection` and `T_SafeInputPair`. Each side has 48 tests, 96 in total. The CFC suites exercise the blocks the way a TwinSAFE project is authored: each test method is a diagram with the calls down the middle in execution order and, beside each call, the asserts that check it, their `Actual` pins wired straight from the block's output pins as a TwinSAFE network would be wired. The methods use explicit execution order (the sequence the boxes were placed in), so a timed test that calls the same block several times in one diagram runs its calls and asserts in the order written; in auto data flow mode the editor reorders wired boxes and those tests assert at the wrong moment. Timed tests use chained `TON` timers and `R_TRIG` one-shots on the `EN` of the assert boxes instead of the ST `CASE` state machines, so the two versions of a timed test are equivalent rather than identical.
+`PRG_TestRunner` runs 40 TcUnit suites, one ST suite (`T_*_Tests`) and one CFC twin (`T_*_Tests_CFC`) for each of the 16 function blocks, `T_SafeGroup`, `T_SafeConnection`, `T_SafeInputPair` and the two example user FBs. Each side has 55 tests, 110 in total. The CFC suites exercise the blocks the way a TwinSAFE project is authored: each test method is a diagram with the calls down the middle in execution order and, beside each call, the asserts that check it, their `Actual` pins wired straight from the block's output pins as a TwinSAFE network would be wired. The methods use explicit execution order (the sequence the boxes were placed in), so a timed test that calls the same block several times in one diagram runs its calls and asserts in the order written; in auto data flow mode the editor reorders wired boxes and those tests assert at the wrong moment. Timed tests use chained `TON` timers and `R_TRIG` one-shots on the `EN` of the assert boxes instead of the ST `CASE` state machines, so the two versions of a timed test are equivalent rather than identical.
 
 The CFC suites extend `T_SafeCfcTestSuite` rather than `TcUnit.FB_TestSuite` directly. TcUnit's `TEST` and `TEST_FINISHED_NAMED` are functions without a return type, and a CFC box for a function must carry a return pin, so that small base class wraps them as the methods `StartTest` and `FinishTest` that the diagrams call.
 

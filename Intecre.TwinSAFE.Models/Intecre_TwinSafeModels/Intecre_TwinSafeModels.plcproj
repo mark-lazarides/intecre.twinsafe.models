@@ -126,6 +126,12 @@
     <Compile Include="DUTs\ST_SafeTwoHandParameters.TcDUT">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Examples\Example_UserFbs\T_SafePulse_UserFB.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Examples\Example_UserFbs\T_SafeRTrig_UserFB.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Examples\PRG_EStopExample.TcPOU">
       <SubType>Code</SubType>
     </Compile>
@@ -300,6 +306,18 @@
     <Compile Include="Tests\T_SafeXor_Tests_CFC.TcPOU">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Tests\User_FB_Tests\T_SafePulse_UserFB_Tests.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\User_FB_Tests\T_SafePulse_UserFB_Tests_CFC.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\User_FB_Tests\T_SafeRTrig_UserFB_Tests.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Tests\User_FB_Tests\T_SafeRTrig_UserFB_Tests_CFC.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Version\Global_Version.TcGVL">
       <SubType>Code</SubType>
     </Compile>
@@ -308,9 +326,11 @@
     <Folder Include="Core" />
     <Folder Include="DUTs" />
     <Folder Include="Examples" />
+    <Folder Include="Examples\Example_UserFbs" />
     <Folder Include="FunctionBlocks" />
     <Folder Include="Project Information" />
     <Folder Include="Tests" />
+    <Folder Include="Tests\User_FB_Tests" />
     <Folder Include="Version" />
   </ItemGroup>
   <ItemGroup>
