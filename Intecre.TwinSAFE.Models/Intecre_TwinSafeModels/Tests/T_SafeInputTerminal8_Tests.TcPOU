@@ -1,0 +1,154 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="T_SafeInputTerminal8_Tests" Id="{d252c0bf-0349-42d7-8dff-a653417f23aa}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK T_SafeInputTerminal8_Tests EXTENDS TcUnit.FB_TestSuite
+VAR
+    // Test_SafeInputsFalseBeforeData
+    group_1 : T_SafeGroup;
+    terminal_1 : T_SafeInputTerminal8(group := group_1);
+    // Test_SafeInputsFollowChannelsInData
+    group_2 : T_SafeGroup;
+    terminal_2 : T_SafeInputTerminal8(group := group_2);
+    i_2 : INT;
+    // Test_ComErrorForcesSafeInputsFalse
+    group_3 : T_SafeGroup;
+    terminal_3 : T_SafeInputTerminal8(group := group_3);
+    i_3 : INT;
+    // Test_RegistersAsConnection
+    group_4 : T_SafeGroup;
+    terminal_4 : T_SafeInputTerminal8(group := group_4);
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Test_SafeInputsFalseBeforeData();
+Test_SafeInputsFollowChannelsInData();
+Test_ComErrorForcesSafeInputsFalse();
+Test_RegistersAsConnection();
+]]></ST>
+    </Implementation>
+    <Method Name="Test_SafeInputsFalseBeforeData" Id="{ec254f3d-476e-4273-b9aa-69723eaaec22}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_SafeInputsFalseBeforeData
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+
+// arrange: group stopped, so the connection never reaches Data
+group_1(Run := FALSE);
+
+// act
+terminal_1(Channel1 := TRUE, Channel2 := TRUE, Channel3 := TRUE, Channel4 := TRUE,
+           Channel5 := TRUE, Channel6 := TRUE, Channel7 := TRUE, Channel8 := TRUE,
+           StartupTime := T#0S);
+
+// assert
+AssertEquals_BOOL(Expected := FALSE, Actual := terminal_1.InDataState, Message := 'not in Data');
+AssertEquals_BOOL(Expected := FALSE, Actual := terminal_1.SafeIn1, Message := 'SafeIn1 fail-safe');
+AssertEquals_BOOL(Expected := FALSE, Actual := terminal_1.SafeIn2, Message := 'SafeIn2 fail-safe');
+AssertEquals_BOOL(Expected := FALSE, Actual := terminal_1.SafeIn3, Message := 'SafeIn3 fail-safe');
+AssertEquals_BOOL(Expected := FALSE, Actual := terminal_1.SafeIn4, Message := 'SafeIn4 fail-safe');
+AssertEquals_BOOL(Expected := FALSE, Actual := terminal_1.SafeIn5, Message := 'SafeIn5 fail-safe');
+AssertEquals_BOOL(Expected := FALSE, Actual := terminal_1.SafeIn6, Message := 'SafeIn6 fail-safe');
+AssertEquals_BOOL(Expected := FALSE, Actual := terminal_1.SafeIn7, Message := 'SafeIn7 fail-safe');
+AssertEquals_BOOL(Expected := FALSE, Actual := terminal_1.SafeIn8, Message := 'SafeIn8 fail-safe');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_SafeInputsFollowChannelsInData" Id="{ebd993fe-88c1-4762-9fcc-e4b9d0395db9}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_SafeInputsFollowChannelsInData
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+
+// arrange: run the group until the connection is in Data
+FOR i_2 := 1 TO 5 DO
+    group_2(Run := TRUE);
+    terminal_2(StartupTime := T#0S);
+END_FOR
+AssertEquals_BOOL(Expected := TRUE, Actual := terminal_2.InDataState, Message := 'Data state reached');
+
+// act: odd channels on, even channels off
+group_2(Run := TRUE);
+terminal_2(Channel1 := TRUE, Channel2 := FALSE, Channel3 := TRUE, Channel4 := FALSE,
+           Channel5 := TRUE, Channel6 := FALSE, Channel7 := TRUE, Channel8 := FALSE,
+           StartupTime := T#0S);
+
+// assert
+AssertEquals_BOOL(Expected := TRUE, Actual := terminal_2.SafeIn1, Message := 'SafeIn1 follows Channel1');
+AssertEquals_BOOL(Expected := FALSE, Actual := terminal_2.SafeIn2, Message := 'SafeIn2 follows Channel2');
+AssertEquals_BOOL(Expected := TRUE, Actual := terminal_2.SafeIn3, Message := 'SafeIn3 follows Channel3');
+AssertEquals_BOOL(Expected := FALSE, Actual := terminal_2.SafeIn4, Message := 'SafeIn4 follows Channel4');
+AssertEquals_BOOL(Expected := TRUE, Actual := terminal_2.SafeIn5, Message := 'SafeIn5 follows Channel5');
+AssertEquals_BOOL(Expected := FALSE, Actual := terminal_2.SafeIn6, Message := 'SafeIn6 follows Channel6');
+AssertEquals_BOOL(Expected := TRUE, Actual := terminal_2.SafeIn7, Message := 'SafeIn7 follows Channel7');
+AssertEquals_BOOL(Expected := FALSE, Actual := terminal_2.SafeIn8, Message := 'SafeIn8 follows Channel8');
+
+// act: invert the pattern
+group_2(Run := TRUE);
+terminal_2(Channel1 := FALSE, Channel2 := TRUE, Channel3 := FALSE, Channel4 := TRUE,
+           Channel5 := FALSE, Channel6 := TRUE, Channel7 := FALSE, Channel8 := TRUE,
+           StartupTime := T#0S);
+
+// assert
+AssertEquals_BOOL(Expected := FALSE, Actual := terminal_2.SafeIn1, Message := 'SafeIn1 inverted');
+AssertEquals_BOOL(Expected := TRUE, Actual := terminal_2.SafeIn2, Message := 'SafeIn2 inverted');
+AssertEquals_BOOL(Expected := FALSE, Actual := terminal_2.SafeIn3, Message := 'SafeIn3 inverted');
+AssertEquals_BOOL(Expected := TRUE, Actual := terminal_2.SafeIn4, Message := 'SafeIn4 inverted');
+AssertEquals_BOOL(Expected := FALSE, Actual := terminal_2.SafeIn5, Message := 'SafeIn5 inverted');
+AssertEquals_BOOL(Expected := TRUE, Actual := terminal_2.SafeIn6, Message := 'SafeIn6 inverted');
+AssertEquals_BOOL(Expected := FALSE, Actual := terminal_2.SafeIn7, Message := 'SafeIn7 inverted');
+AssertEquals_BOOL(Expected := TRUE, Actual := terminal_2.SafeIn8, Message := 'SafeIn8 inverted');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_ComErrorForcesSafeInputsFalse" Id="{0902cfd9-1830-4da5-af30-d8c97cf748b6}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_ComErrorForcesSafeInputsFalse
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+
+// arrange: in Data with every channel on
+FOR i_3 := 1 TO 5 DO
+    group_3(Run := TRUE);
+    terminal_3(Channel1 := TRUE, Channel2 := TRUE, Channel3 := TRUE, Channel4 := TRUE,
+               Channel5 := TRUE, Channel6 := TRUE, Channel7 := TRUE, Channel8 := TRUE,
+               StartupTime := T#0S);
+END_FOR
+AssertEquals_BOOL(Expected := TRUE, Actual := terminal_3.SafeIn8, Message := 'SafeIn8 on before the error');
+
+// act
+group_3(Run := TRUE);
+terminal_3(Channel1 := TRUE, Channel2 := TRUE, Channel3 := TRUE, Channel4 := TRUE,
+               Channel5 := TRUE, Channel6 := TRUE, Channel7 := TRUE, Channel8 := TRUE,
+               InjectComError := TRUE, StartupTime := T#0S);
+
+// assert
+AssertEquals_BOOL(Expected := TRUE, Actual := terminal_3.ComError, Message := 'com error');
+AssertEquals_BOOL(Expected := FALSE, Actual := terminal_3.SafeIn1, Message := 'SafeIn1 fail-safe on com error');
+AssertEquals_BOOL(Expected := FALSE, Actual := terminal_3.SafeIn4, Message := 'SafeIn4 fail-safe on com error');
+AssertEquals_BOOL(Expected := FALSE, Actual := terminal_3.SafeIn5, Message := 'SafeIn5 fail-safe on com error');
+AssertEquals_BOOL(Expected := FALSE, Actual := terminal_3.SafeIn8, Message := 'SafeIn8 fail-safe on com error');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_RegistersAsConnection" Id="{db409116-94ef-4329-9912-5626c6f28634}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_RegistersAsConnection
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+
+// act
+group_4(Run := TRUE);
+terminal_4(StartupTime := T#0S);
+
+// assert
+AssertEquals_UINT(Expected := 1, Actual := group_4.ConnectionCount, Message := 'one connection registered');
+AssertEquals_UINT(Expected := 0, Actual := group_4.FunctionBlockCount, Message := 'no function blocks');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

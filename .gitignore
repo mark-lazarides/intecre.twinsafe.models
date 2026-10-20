@@ -11,3 +11,7 @@
 .vs/
 **/_CompileInfo/
 **/_Libraries/
+
+/Intecre.TwinSAFE.Models/Intecre.TwinSAFE.Models.dependencies.json
+/Intecre.TwinSAFE.Models/Intecre.TwinSAFE.Models.dependencies.md
+/bin/archive/

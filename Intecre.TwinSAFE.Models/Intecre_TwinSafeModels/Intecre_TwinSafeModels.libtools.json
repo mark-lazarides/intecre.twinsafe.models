@@ -1,0 +1,24 @@
+{
+  "outputDirectory": "{SolutionDir}\\bin",
+  "outputFileName": "{ProjectName}.library",
+  "alsoCompiledLibrary": false,
+  "previousLibraries": "Archive",
+  "archiveDirectory": "archive",
+  "archiveKeep": 0,
+  "installAfterPublish": true,
+  "autoIncrementBuild": false,
+  "createGitTag": true,
+  "gitTagPattern": "v{Version}",
+  "package": {
+    "enabled": true,
+    "feedDirectory": "{SolutionDir}\\bin",
+    "pushSource": null,
+    "useCompiledLibrary": false,
+    "variantXae": true,
+    "installationLevel1": true,
+    "requireLicenseAcceptance": false,
+    "extraTags": [],
+    "dependencies": [],
+    "overrides": {}
+  }
+}

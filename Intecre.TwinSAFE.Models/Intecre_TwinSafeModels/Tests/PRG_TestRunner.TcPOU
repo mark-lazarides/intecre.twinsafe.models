@@ -20,6 +20,8 @@ VAR
     safeTwoHandTests                : T_SafeTwoHand_Tests;
     safeMutingTests                 : T_SafeMuting_Tests;
     safeConnectionTests             : T_SafeConnection_Tests;
+    safeInputTerminal8Tests         : T_SafeInputTerminal8_Tests;
+    safeOutputTerminal2Tests        : T_SafeOutputTerminal2_Tests;
     safeConnShutdownTests           : T_SafeConnShutdown_Tests;
     safeGroupTests                  : T_SafeGroup_Tests;
     safePulseUserFbTests            : T_SafePulse_UserFB_Tests;

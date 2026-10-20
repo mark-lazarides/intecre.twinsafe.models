@@ -1,0 +1,124 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="T_SafeOutputTerminal2_Tests" Id="{eff151a1-f406-4ec8-8704-e62dcabaf512}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK T_SafeOutputTerminal2_Tests EXTENDS TcUnit.FB_TestSuite
+VAR
+    // Test_ChannelsFalseBeforeData
+    group_1 : T_SafeGroup;
+    terminal_1 : T_SafeOutputTerminal2(group := group_1);
+    // Test_ChannelsFollowSafeOutsInData
+    group_2 : T_SafeGroup;
+    terminal_2 : T_SafeOutputTerminal2(group := group_2);
+    i_2 : INT;
+    // Test_ComErrorForcesChannelsFalse
+    group_3 : T_SafeGroup;
+    terminal_3 : T_SafeOutputTerminal2(group := group_3);
+    i_3 : INT;
+    // Test_RegistersAsConnection
+    group_4 : T_SafeGroup;
+    terminal_4 : T_SafeOutputTerminal2(group := group_4);
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Test_ChannelsFalseBeforeData();
+Test_ChannelsFollowSafeOutsInData();
+Test_ComErrorForcesChannelsFalse();
+Test_RegistersAsConnection();
+]]></ST>
+    </Implementation>
+    <Method Name="Test_ChannelsFalseBeforeData" Id="{84f630ee-49f1-4abd-8795-29fe2fb3337d}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_ChannelsFalseBeforeData
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+
+// arrange: group stopped, so the connection never reaches Data
+group_1(Run := FALSE);
+
+// act
+terminal_1(SafeOut1 := TRUE, SafeOut2 := TRUE, StartupTime := T#0S);
+
+// assert
+AssertEquals_BOOL(Expected := FALSE, Actual := terminal_1.InDataState, Message := 'not in Data');
+AssertEquals_BOOL(Expected := FALSE, Actual := terminal_1.Channel1, Message := 'Channel1 fail-safe');
+AssertEquals_BOOL(Expected := FALSE, Actual := terminal_1.Channel2, Message := 'Channel2 fail-safe');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_ChannelsFollowSafeOutsInData" Id="{b80821ba-a1d9-4cd8-8bb8-edf44bc32550}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_ChannelsFollowSafeOutsInData
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+
+// arrange: run the group until the connection is in Data
+FOR i_2 := 1 TO 5 DO
+    group_2(Run := TRUE);
+    terminal_2(StartupTime := T#0S);
+END_FOR
+AssertEquals_BOOL(Expected := TRUE, Actual := terminal_2.InDataState, Message := 'Data state reached');
+
+// act
+group_2(Run := TRUE);
+terminal_2(SafeOut1 := TRUE, SafeOut2 := FALSE, StartupTime := T#0S);
+
+// assert
+AssertEquals_BOOL(Expected := TRUE, Actual := terminal_2.Channel1, Message := 'Channel1 follows SafeOut1');
+AssertEquals_BOOL(Expected := FALSE, Actual := terminal_2.Channel2, Message := 'Channel2 follows SafeOut2');
+
+// act: swap
+group_2(Run := TRUE);
+terminal_2(SafeOut1 := FALSE, SafeOut2 := TRUE, StartupTime := T#0S);
+
+// assert
+AssertEquals_BOOL(Expected := FALSE, Actual := terminal_2.Channel1, Message := 'Channel1 swapped');
+AssertEquals_BOOL(Expected := TRUE, Actual := terminal_2.Channel2, Message := 'Channel2 swapped');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_ComErrorForcesChannelsFalse" Id="{12e99dbb-1f02-457d-b9c0-7a19dff93bd8}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_ComErrorForcesChannelsFalse
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+
+// arrange: in Data with both outputs on
+FOR i_3 := 1 TO 5 DO
+    group_3(Run := TRUE);
+    terminal_3(SafeOut1 := TRUE, SafeOut2 := TRUE, StartupTime := T#0S);
+END_FOR
+AssertEquals_BOOL(Expected := TRUE, Actual := terminal_3.Channel2, Message := 'Channel2 on before the error');
+
+// act
+group_3(Run := TRUE);
+terminal_3(SafeOut1 := TRUE, SafeOut2 := TRUE, InjectComError := TRUE, StartupTime := T#0S);
+
+// assert
+AssertEquals_BOOL(Expected := TRUE, Actual := terminal_3.ComError, Message := 'com error');
+AssertEquals_BOOL(Expected := FALSE, Actual := terminal_3.Channel1, Message := 'Channel1 fail-safe on com error');
+AssertEquals_BOOL(Expected := FALSE, Actual := terminal_3.Channel2, Message := 'Channel2 fail-safe on com error');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_RegistersAsConnection" Id="{2063f21a-10fb-4464-a5c7-2a9be00ac58a}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_RegistersAsConnection
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+
+// act
+group_4(Run := TRUE);
+terminal_4(StartupTime := T#0S);
+
+// assert
+AssertEquals_UINT(Expected := 1, Actual := group_4.ConnectionCount, Message := 'one connection registered');
+AssertEquals_UINT(Expected := 0, Actual := group_4.FunctionBlockCount, Message := 'no function blocks');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+  </POU>
+</TcPlcObject>

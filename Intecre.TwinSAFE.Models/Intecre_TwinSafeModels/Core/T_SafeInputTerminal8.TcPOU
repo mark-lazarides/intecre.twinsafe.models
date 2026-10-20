@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="T_SafeInputTerminal8" Id="{1f9fadca-4286-49d0-8772-7caac016f663}" SpecialFunc="None">
+    <Declaration><![CDATA[// Model of an eight channel safe input terminal (EL1918): a TwinSAFE connection with eight channels.
+// Declare it in its group:  inputTerminal : T_SafeInputTerminal8(group := safetyGroup);
+// Channel1..8 are the simulated field signals; SafeIn1..8 are what the TwinSAFE logic sees:
+// forced FALSE (fail-safe) unless the connection is in the Data state.
+FUNCTION_BLOCK T_SafeInputTerminal8 EXTENDS T_SafeConnection
+VAR_INPUT
+    Channel1 : BOOL;
+    Channel2 : BOOL;
+    Channel3 : BOOL;
+    Channel4 : BOOL;
+    Channel5 : BOOL;
+    Channel6 : BOOL;
+    Channel7 : BOOL;
+    Channel8 : BOOL;
+END_VAR
+VAR_OUTPUT
+    SafeIn1 : BOOL;
+    SafeIn2 : BOOL;
+    SafeIn3 : BOOL;
+    SafeIn4 : BOOL;
+    SafeIn5 : BOOL;
+    SafeIn6 : BOOL;
+    SafeIn7 : BOOL;
+    SafeIn8 : BOOL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[SUPER^();
+SafeIn1 := Channel1 AND InDataState;
+SafeIn2 := Channel2 AND InDataState;
+SafeIn3 := Channel3 AND InDataState;
+SafeIn4 := Channel4 AND InDataState;
+SafeIn5 := Channel5 AND InDataState;
+SafeIn6 := Channel6 AND InDataState;
+SafeIn7 := Channel7 AND InDataState;
+SafeIn8 := Channel8 AND InDataState;
+]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

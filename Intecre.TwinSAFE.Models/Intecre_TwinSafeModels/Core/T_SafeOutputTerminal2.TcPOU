@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="T_SafeOutputTerminal2" Id="{743b179f-a625-47bd-ad52-dc17aa13cae9}" SpecialFunc="None">
+    <Declaration><![CDATA[// Model of a two channel safe output terminal (EL2912): a TwinSAFE connection with two channels.
+// Declare it in its group:  outputTerminal : T_SafeOutputTerminal2(group := safetyGroup);
+// SafeOut1..2 are wired from FB outputs; Channel1..2 are the simulated field outputs,
+// forced FALSE (fail-safe) unless the connection is in the Data state.
+FUNCTION_BLOCK T_SafeOutputTerminal2 EXTENDS T_SafeConnection
+VAR_INPUT
+    SafeOut1 : BOOL;
+    SafeOut2 : BOOL;
+END_VAR
+VAR_OUTPUT
+    Channel1 : BOOL;
+    Channel2 : BOOL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[SUPER^();
+Channel1 := SafeOut1 AND InDataState;
+Channel2 := SafeOut2 AND InDataState;
+]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

@@ -32,12 +32,12 @@ Build and trial a safety application, and the standard-PLC code that talks to it
 | | |
 |---|---|
 | TwinCAT | 3.1 build 4026 |
-| Library version | 0.3.0.0 |
+| Library version | 0.4.0.0 |
 | Libraries | `TcUnit, * (www.tcunit.org)`, `Tc2_Standard`, `Tc2_System`, `Tc3_Module` |
 
 ### Use it
 
-Either open the solution and work in it directly, or install `Intecre_TwinSafeModels.library` (version 0.3.0.0) from the repository root into the TwinCAT library repository and reference `Intecre.TwinSAFE.Models` from your own project. The PLC project is set up as a library (title `Intecre.TwinSAFE.Models`, company Intecre Ltd, version in the project properties, generated into `Version/Global_Version.TcGVL` and `F_GetVersion`).
+Either open the solution and work in it directly, or install `Intecre_TwinSafeModels.library` (version 0.4.0.0) from the repository root into the TwinCAT library repository and reference `Intecre.TwinSAFE.Models` from your own project. The PLC project is set up as a library (title `Intecre.TwinSAFE.Models`, company Intecre Ltd, version in the project properties, generated into `Version/Global_Version.TcGVL` and `F_GetVersion`).
 
 > [!NOTE]
 > The 0.2.0.0 build was shipped as `TwinSafeModels.library`; from 0.3.0.0 the file is `Intecre_TwinSafeModels.library` again, matching the PLC project name. Both install as `Intecre.TwinSAFE.Models` in the library repository, so check the version rather than the file name.
@@ -48,7 +48,7 @@ The project compiles cleanly in TwinCAT 3.1 4026 (verified with *Check all objec
 
 ```text
 Intecre.TwinSAFE.Models.sln
-Intecre_TwinSafeModels.library           installable library build of the PLC project (0.3.0.0)
+Intecre_TwinSafeModels.library           installable library build of the PLC project (0.4.0.0)
 Intecre.TwinSAFE.Models/                 TwinCAT solution project (tsproj)
   _Config/PLC/                           PLC instance configuration
   Intecre_TwinSafeModels/                PLC project (library Intecre.TwinSAFE.Models)
@@ -85,8 +85,10 @@ docs/images/                             screenshots used in this README
 | CONNECTION SHUTDOWN | `T_SafeConnShutdown` | `ST_SafeConnShutdownParameters` | takes the `T_SafeConnection` it shuts down at initialisation |
 | TwinSAFE group | `T_SafeGroup` | none | EL/EJ6910 inputs and outputs; FBs and connections register with it at initialisation |
 | TwinSAFE connection | `T_SafeConnection` | inputs | FSoE state codes 100..106 |
-| EL1904 | `T_SafeInputTerminal` | inputs | fail-safe inputs unless in Data |
-| EL2904 | `T_SafeOutputTerminal` | inputs | fail-safe outputs unless in Data |
+| EL1904 | `T_SafeInputTerminal` | inputs | four channels, fail-safe inputs unless in Data |
+| EL1918 | `T_SafeInputTerminal8` | inputs | eight channels, as EL1904 |
+| EL2904 | `T_SafeOutputTerminal` | inputs | four channels, fail-safe outputs unless in Data |
+| EL2912 | `T_SafeOutputTerminal2` | inputs | two channels, as EL2904 |
 
 > [!NOTE]
 > Not modelled: TON2 (remaining-time persistence), the analogue and drive blocks (ADD, SUB, MUL, DIV, COMPARE, LIMIT, COUNTER, SCALE, SPEED, LOADSENSING, CAMMONITOR, SLI, SLP, SBT, ADVPOSMON, Envelope, ViolationCounter, safeCAM, safeLookUpTable, safeSequence), group customising (Deactivate / Passivate), and terminal module errors (*Module error is ComError*).
@@ -260,7 +262,7 @@ Where the manual is explicit the models follow it. Where it is silent the follow
 
 ## Tests
 
-`PRG_TestRunner` runs 40 TcUnit suites, one ST suite (`T_*_Tests`) and one CFC twin (`T_*_Tests_CFC`) for each of the 16 function blocks, `T_SafeGroup`, `T_SafeConnection`, `T_SafeInputPair` and the two example user FBs. Each side has 55 tests, 110 in total. The CFC suites exercise the blocks the way a TwinSAFE project is authored: each test method is a diagram with the calls down the middle in execution order and, beside each call, the asserts that check it, their `Actual` pins wired straight from the block's output pins as a TwinSAFE network would be wired. The methods use explicit execution order (the sequence the boxes were placed in), so a timed test that calls the same block several times in one diagram runs its calls and asserts in the order written; in auto data flow mode the editor reorders wired boxes and those tests assert at the wrong moment. Timed tests use chained `TON` timers and `R_TRIG` one-shots on the `EN` of the assert boxes instead of the ST `CASE` state machines, so the two versions of a timed test are equivalent rather than identical.
+`PRG_TestRunner` runs 42 TcUnit suites: one ST suite (`T_*_Tests`) and one CFC twin (`T_*_Tests_CFC`) for each of the 16 function blocks, `T_SafeGroup`, `T_SafeConnection`, `T_SafeInputPair` and the two example user FBs (55 tests each side, 110 in total), plus ST suites for the EL1918 and EL2912 terminal models (8 tests). The terminal models are plain connections with a channel copy, so they have no CFC twins; the EL1904 model is exercised by the group suites. The CFC suites exercise the blocks the way a TwinSAFE project is authored: each test method is a diagram with the calls down the middle in execution order and, beside each call, the asserts that check it, their `Actual` pins wired straight from the block's output pins as a TwinSAFE network would be wired. The methods use explicit execution order (the sequence the boxes were placed in), so a timed test that calls the same block several times in one diagram runs its calls and asserts in the order written; in auto data flow mode the editor reorders wired boxes and those tests assert at the wrong moment. Timed tests use chained `TON` timers and `R_TRIG` one-shots on the `EN` of the assert boxes instead of the ST `CASE` state machines, so the two versions of a timed test are equivalent rather than identical.
 
 The CFC suites extend `T_SafeCfcTestSuite` rather than `TcUnit.FB_TestSuite` directly. TcUnit's `TEST` and `TEST_FINISHED_NAMED` are functions without a return type, and a CFC box for a function must carry a return pin, so that small base class wraps them as the methods `StartTest` and `FinishTest` that the diagrams call.
 
@@ -276,6 +278,7 @@ Blocks use the `T_` prefix, private members `_camelCase`, and state machines use
 
 | Version | Date | Changes |
 |---|---|---|
+| 0.4.0.0 | 2026-10-19 | `T_SafeInputTerminal8` (EL1918, eight channels) and `T_SafeOutputTerminal2` (EL2912, two channels) in `Core`, with ST test suites. Built and installed with `tclib publish`. |
 | 0.3.0.0 | 2026-10-16 | Example user FBs `T_SafePulse_UserFB` and `T_SafeRTrig_UserFB` under `Examples/Example_UserFbs`, showing how a composite block is declared and how its `FB_init` passes the group on, with TcUnit suites (ST and CFC twins) under `Tests/User_FB_Tests`. Library file is `Intecre_TwinSafeModels.library` again. |
 | 0.2.0.0 | 2026-09-22 | Group membership by reference (`FB_init(group := ...)`, `SetGroupReference` for composite blocks) with guards for a missing group; FBD test suites and example replaced by CFC twins on `T_SafeCfcTestSuite`. Shipped as `TwinSafeModels.library`. |
 | 0.1.1.0 | 2026-09-14 | First release: the 16 logic FBs, the group, connection and terminal models, with ST and FBD TcUnit suites. |
