@@ -22,9 +22,11 @@
     <DocFormat>reStructuredText</DocFormat>
     <Description>Functional models of the TwinSAFE logic function blocks and TwinSAFE group, for trialling safety applications and their interaction with the standard PLC.
 
+0.4.1.0 - corrects call issue with Example_UserFBs
+
 0.4.0.0 - Adds the eight channel (EL1918) and two channel (EL2912) terminal models.
 0.3.0.0 - Adds User FB examples, demonstrating extension.</Description>
-    <ProjectVersion>0.4.0.0</ProjectVersion>
+    <ProjectVersion>0.4.1.1</ProjectVersion>
     <POUsForPropertyAccessIncluded>true</POUsForPropertyAccessIncluded>
     <GlobalVersionStructureIncluded>true</GlobalVersionStructureIncluded>
     <LibraryCategories>

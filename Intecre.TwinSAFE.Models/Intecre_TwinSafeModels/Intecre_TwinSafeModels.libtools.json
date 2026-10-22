@@ -6,7 +6,7 @@
   "archiveDirectory": "archive",
   "archiveKeep": 0,
   "installAfterPublish": true,
-  "autoIncrementBuild": false,
+  "autoIncrementBuild": true,
   "createGitTag": true,
   "gitTagPattern": "v{Version}",
   "package": {
