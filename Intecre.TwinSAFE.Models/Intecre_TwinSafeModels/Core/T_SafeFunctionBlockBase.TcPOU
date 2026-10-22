@@ -6,7 +6,9 @@
 //     eStop : T_SafeEStop(group := safetyGroup);
 // It registers with the group, takes FbRun (group in RUN) and ErrAck from it, and the group
 // reads its Error and IsRunning outputs. Declare the group before its members.
-// Derived classes implement Process() and keep Error, State and Diag up to date.
+// Derived classes implement Process(). Before Process() the base sets State to Run while the group
+// runs and to Stop otherwise, so a block built only from other blocks needs no State logic; a block
+// with states of its own overwrites State in Process(), and writes Error and Diag when it has them.
 FUNCTION_BLOCK ABSTRACT T_SafeFunctionBlockBase
 VAR_OUTPUT
     Error : BOOL; // FB Error output
@@ -35,8 +37,12 @@ END_IF
 _errAckRisingEdge  := _errAck AND NOT _errAckPrev;
 _errAckFallingEdge := NOT _errAck AND _errAckPrev;
 _errAckPrev        := _errAck;
+// default state: Run while the group runs, else Stop. Blocks with states of their own overwrite it in
+// Process(). Error and Diag are not reset here: they latch until ErrAck in TwinSAFE, so only the block
+// that raised them clears them.
+State := TO_BYTE(SEL(_fbRun, E_SafeFbState.Stop, E_SafeFbState.Run));
 Process();
-IsRunning := (State = 1);
+IsRunning := (State = TO_BYTE(E_SafeFbState.Run));
 ]]></ST>
     </Implementation>
     <Method Name="ClearDiagBit" Id="{49190d3a-7696-50e6-bca4-a0c8c2d1b475}">

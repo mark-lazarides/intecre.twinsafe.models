@@ -42,6 +42,7 @@ group_2(Run := FALSE);
 fb_2(Signal := TRUE);
 // assert
 AssertEquals_BOOL(Expected := FALSE, Actual := fb_2.Trigger, Message := 'no output while the group is stopped');
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_2.IsRunning, Message := 'not running while the group is stopped');
 TEST_FINISHED_NAMED(__POUNAME());
 ]]></ST>
       </Implementation>
@@ -55,6 +56,7 @@ TEST_FINISHED_NAMED(__POUNAME());
 group_1(Run := TRUE);
 fb_1(Signal := FALSE);
 AssertEquals_BOOL(Expected := FALSE, Actual := fb_1.Trigger, Message := 'no trigger while the signal is off');
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_1.IsRunning, Message := 'reports Run to the group while it runs');
 fb_1(Signal := TRUE);
 AssertEquals_BOOL(Expected := TRUE, Actual := fb_1.Trigger, Message := 'trigger on the rising edge');
 fb_1(Signal := TRUE);

@@ -32,7 +32,7 @@ Build and trial a safety application, and the standard-PLC code that talks to it
 | | |
 |---|---|
 | TwinCAT | 3.1 build 4026 |
-| Library version | 0.4.1.1 |
+| Library version | 0.4.2.0 |
 | Libraries | `TcUnit, * (www.tcunit.org)`, `Tc2_Standard`, `Tc2_System`, `Tc3_Module` |
 
 ### Use it
@@ -51,7 +51,7 @@ tcpkg install Intecre.TwinSAFE.Models
 
 The package is not signed. TcPkg refuses unsigned packages until signature checking is switched off with `tcpkg config unset -n VerifySignatures`, which applies to every feed, so switch it back on afterwards if you rely on it.
 
-The PLC project is set up as a library The PLC project is set up as a library (title `Intecre.TwinSAFE.Models`, company Intecre Ltd, version in the project properties, generated into `Version/Global_Version.TcGVL` and `F_GetVersion`).
+The PLC project is set up as a library (title `Intecre.TwinSAFE.Models`, company Intecre Ltd, version in the project properties, generated into `Version/Global_Version.TcGVL` and `F_GetVersion`).
 
 > [!NOTE]
 > Up to 0.4.0.0 the library was kept in the repository root, and the 0.2.0.0 build was shipped as `TwinSafeModels.library`. All builds install as `Intecre.TwinSAFE.Models` in the library repository, so check the version rather than the file name.
@@ -63,7 +63,7 @@ The project compiles cleanly in TwinCAT 3.1 4026 (verified with *Check all objec
 ```text
 Intecre.TwinSAFE.Models.sln
 bin/                                     published releases
-  Intecre_TwinSafeModels.library         installable library build of the PLC project (0.4.1.1)
+  Intecre_TwinSafeModels.library         installable library build of the PLC project (0.4.2.0)
   Intecre.TwinSAFE.Models.*.nupkg        TcPkg packages of each release
 Intecre.TwinSAFE.Models/                 TwinCAT solution project (tsproj)
   _Config/PLC/                           PLC instance configuration
@@ -174,7 +174,7 @@ safeAnd.SetGroupReference(bInCopyCode := bInCopyCode, group := group);
 
 *The same `FB_init` in a project that uses the library, where the group type carries the library namespace.*
 
-**3. Process and the body.** Implement the protected `Process` method, in ST or as a CFC diagram, calling the inner blocks and wiring the composite's pins to theirs. The composite's own body must call the base body, `SUPER^();` in ST or a `SUPER^` box in CFC, and nothing else. Do not call `Process` from the body directly: that skips the base body, so the composite never reads the group and `IsRunning` is never derived. The examples did this up to 0.4.0.0. The base body runs every cycle: it reads `InRun` and `ErrAck` from the group, calls `Process`, then derives `IsRunning` from `State`. Writing `IsRunning` inside `Process` therefore has no effect; set `State` (and `Error`, `Diag`) in `Process` if the application reads them from the composite, otherwise they stay at their defaults and the group's `FbRun` output stays FALSE while the composite is registered.
+**3. Process and the body.** Implement the protected `Process` method, in ST or as a CFC diagram, calling the inner blocks and wiring the composite's pins to theirs. The composite's own body must call the base body, `SUPER^();` in ST or a `SUPER^` box in CFC, and nothing else. Do not call `Process` from the body directly: that skips the base body, so the composite never reads the group and `IsRunning` is never derived. The examples did this up to 0.4.0.0. The base body runs every cycle: it reads `InRun` and `ErrAck` from the group, sets `State` to `Run` while the group runs and to `Stop` otherwise, calls `Process`, then derives `IsRunning` from `State`. A composite built only from logic blocks therefore needs no `State`, `Error` or `Diag` logic of its own (since 0.4.2.0; before that `State` stayed at its default and the composite never reported Run, so the group's `FbRun` output stayed FALSE). A composite with states of its own overwrites `State` in `Process` and writes `Error` and `Diag` when it has them; the base never resets those two, because they latch until the group's `ErrAck` in TwinSAFE. Writing `IsRunning` inside `Process` has no effect.
 
 The application then declares the block beside the standard ones: `acceptanceWindow : T_SafePulse_UserFB(group := safeGroup);`. `T_SafeConnection` and the terminals have the same `SetGroupReference` method, so a composite can contain a connection too; a connection without a valid group stays in its initial fail-safe state.
 
@@ -294,6 +294,7 @@ Blocks use the `T_` prefix, private members `_camelCase`, and state machines use
 
 | Version | Date | Changes |
 |---|---|---|
+| 0.4.2.0 | 2026-10-22 | `T_SafeFunctionBlockBase` sets `State` to Run or Stop from the group before `Process`, so a composite without states of its own reports Run to its group without any `State` logic in its chart. The example user FBs drop the `IsRunning` AND that the base body overwrote; their suites assert `IsRunning`. |
 | 0.4.1.1 | 2026-10-21 | The example user FBs call `SUPER^` from their body instead of `Process`, so the base body runs. Releases are published to `bin/` as a `.library` and a TcPkg package; the copy in the repository root is removed. |
 | 0.4.0.0 | 2026-10-19 | `T_SafeInputTerminal8` (EL1918, eight channels) and `T_SafeOutputTerminal2` (EL2912, two channels) in `Core`, with ST test suites. Built and installed with `tclib publish`. |
 | 0.3.0.0 | 2026-10-16 | Example user FBs `T_SafePulse_UserFB` and `T_SafeRTrig_UserFB` under `Examples/Example_UserFbs`, showing how a composite block is declared and how its `FB_init` passes the group on, with TcUnit suites (ST and CFC twins) under `Tests/User_FB_Tests`. Library file is `Intecre_TwinSafeModels.library` again. |

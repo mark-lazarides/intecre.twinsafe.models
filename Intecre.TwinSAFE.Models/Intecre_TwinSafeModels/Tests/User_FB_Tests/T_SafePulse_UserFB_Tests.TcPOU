@@ -47,6 +47,7 @@ TEST_FINISHED_NAMED(__POUNAME());
 group_2(Run := TRUE);
 fb_2(TonIn1 := TRUE);
 AssertEquals_BOOL(Expected := TRUE, Actual := fb_2.TonOut, Message := 'pulse on');
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_2.IsRunning, Message := 'reports Run to the group while it runs');
 fb_2(TonIn1 := FALSE);
 AssertEquals_BOOL(Expected := FALSE, Actual := fb_2.TonOut, Message := 'pulse cut off when the input drops');
 TEST_FINISHED_NAMED(__POUNAME());
@@ -114,6 +115,7 @@ group_3(Run := FALSE);
 fb_3(TonIn1 := TRUE);
 // assert
 AssertEquals_BOOL(Expected := FALSE, Actual := fb_3.TonOut, Message := 'no output while the group is stopped');
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_3.IsRunning, Message := 'not running while the group is stopped');
 TEST_FINISHED_NAMED(__POUNAME());
 ]]></ST>
       </Implementation>
