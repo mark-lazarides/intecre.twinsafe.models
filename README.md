@@ -32,7 +32,7 @@ Build and trial a safety application, and the standard-PLC code that talks to it
 | | |
 |---|---|
 | TwinCAT | 3.1 build 4026 |
-| Library version | 0.4.3.0 |
+| Library version | 0.4.4.0 |
 | Libraries | `TcUnit, * (www.tcunit.org)`, `Tc2_Standard`, `Tc2_System`, `Tc3_Module` |
 
 ### Use it
@@ -63,7 +63,7 @@ The project compiles cleanly in TwinCAT 3.1 4026 (verified with *Check all objec
 ```text
 Intecre.TwinSAFE.Models.sln
 bin/                                     published releases
-  Intecre_TwinSafeModels.library         installable library build of the PLC project (0.4.3.0)
+  Intecre_TwinSafeModels.library         installable library build of the PLC project (0.4.4.0)
   Intecre.TwinSAFE.Models.*.nupkg        TcPkg packages of each release
 Intecre.TwinSAFE.Models/                 TwinCAT solution project (tsproj)
   _Config/PLC/                           PLC instance configuration
@@ -103,7 +103,7 @@ docs/images/                             screenshots used in this README
 | TwinSAFE connection | `T_SafeConnection` | inputs | FSoE state codes 100..106 |
 | EL1904 | `T_SafeInputTerminal` | inputs | four channels, fail-safe inputs unless in Data |
 | EL1918 | `T_SafeInputTerminal8` | inputs | eight channels, as EL1904 |
-| EL2904 | `T_SafeOutputTerminal` | inputs | four channels, fail-safe outputs unless in Data |
+| EL2904 | `T_SafeOutputTerminal` | inputs | four channels, fail-safe outputs unless in Data with the group in RUN (`OutputsEnabled`) |
 | EL2912 | `T_SafeOutputTerminal2` | inputs | two channels, as EL2904 |
 
 > [!NOTE]
@@ -294,6 +294,7 @@ Blocks use the `T_` prefix, private members `_camelCase`, and state machines use
 
 | Version | Date | Changes |
 |---|---|---|
+| 0.4.4.0 | 2026-10-29 | A safe output terminal passes its `SafeOut` values only while its connection is in Data and its group is in RUN (`T_SafeConnection.OutputsEnabled`): a group in STOP or ERROR switches every output of the group off, as the EL6910 does, even for a value wired straight from an input to an output. Before, that reaction existed only through the blocks stopping, so a direct wire kept its output on. One terminal test. |
 | 0.4.3.0 | 2026-10-29 | `T_SafeGroup` holds 256 function blocks and 64 connections (was 64 and 32: a simulated group of door functions had passed the cap and most of its blocks could not put the group in error), and its new `RegistrationRefused` output shows a member that could not join. Two group tests. |
 | 0.4.2.0 | 2026-10-22 | `T_SafeFunctionBlockBase` sets `State` to Run or Stop from the group before `Process`, so a composite without states of its own reports Run to its group without any `State` logic in its chart. The example user FBs drop the `IsRunning` AND that the base body overwrote; their suites assert `IsRunning`. |
 | 0.4.1.1 | 2026-10-21 | The example user FBs call `SUPER^` from their body instead of `Process`, so the base body runs. Releases are published to `bin/` as a `.library` and a TcPkg package; the copy in the repository root is removed. |

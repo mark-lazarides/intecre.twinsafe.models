@@ -20,6 +20,7 @@ VAR_OUTPUT
     ComError : BOOL;
     InStartup : BOOL;
     InDataState : BOOL;
+    OutputsEnabled : BOOL; // in the Data state with the group in RUN: the only time a safe output terminal passes its SafeOut values (a group in STOP or ERROR switches every output of the group off)
     IsShutdown : BOOL;
     State : BYTE; // connection state code 100..106
     Diag : BYTE; // connection diagnostic byte
@@ -81,6 +82,7 @@ InStartup := NOT ComError
                  OR _state = E_SafeConnectionState.Parameter);
 
 InDataState := (_state = E_SafeConnectionState.Data);
+OutputsEnabled := InDataState AND _group.InRun;
 IsShutdown  := (_state = E_SafeConnectionState.Shutdown) OR (_state = E_SafeConnectionState.ShutdownDeactive);
 State       := TO_BYTE(_state);
 Diag        := TO_BYTE(_errorCode);

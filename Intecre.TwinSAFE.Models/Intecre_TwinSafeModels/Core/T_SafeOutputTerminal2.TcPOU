@@ -4,7 +4,7 @@
     <Declaration><![CDATA[// Model of a two channel safe output terminal (EL2912): a TwinSAFE connection with two channels.
 // Declare it in its group:  outputTerminal : T_SafeOutputTerminal2(group := safetyGroup);
 // SafeOut1..2 are wired from FB outputs; Channel1..2 are the simulated field outputs,
-// forced FALSE (fail-safe) unless the connection is in the Data state.
+// forced FALSE (fail-safe) unless the connection is in the Data state and the group is in RUN (OutputsEnabled).
 FUNCTION_BLOCK T_SafeOutputTerminal2 EXTENDS T_SafeConnection
 VAR_INPUT
     SafeOut1 : BOOL;
@@ -17,8 +17,8 @@ END_VAR
 ]]></Declaration>
     <Implementation>
       <ST><![CDATA[SUPER^();
-Channel1 := SafeOut1 AND InDataState;
-Channel2 := SafeOut2 AND InDataState;
+Channel1 := SafeOut1 AND OutputsEnabled;
+Channel2 := SafeOut2 AND OutputsEnabled;
 ]]></ST>
     </Implementation>
   </POU>

@@ -17,6 +17,10 @@ VAR
     // Test_RegistersAsConnection
     group_4 : T_SafeGroup;
     terminal_4 : T_SafeOutputTerminal2(group := group_4);
+    // Test_GroupNotRunningForcesChannelsFalse
+    group_5 : T_SafeGroup;
+    terminal_5 : T_SafeOutputTerminal2(group := group_5);
+    i_5 : INT;
 END_VAR
 ]]></Declaration>
     <Implementation>
@@ -24,6 +28,7 @@ END_VAR
 Test_ChannelsFollowSafeOutsInData();
 Test_ComErrorForcesChannelsFalse();
 Test_RegistersAsConnection();
+Test_GroupNotRunningForcesChannelsFalse();
 ]]></ST>
     </Implementation>
     <Method Name="Test_ChannelsFalseBeforeData" Id="{84f630ee-49f1-4abd-8795-29fe2fb3337d}">
@@ -116,6 +121,34 @@ terminal_4(StartupTime := T#0S);
 // assert
 AssertEquals_UINT(Expected := 1, Actual := group_4.ConnectionCount, Message := 'one connection registered');
 AssertEquals_UINT(Expected := 0, Actual := group_4.FunctionBlockCount, Message := 'no function blocks');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_GroupNotRunningForcesChannelsFalse" Id="{325c92ba-7a98-47ad-8d85-fdd4b6ecbf23}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_GroupNotRunningForcesChannelsFalse
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// arrange: connection in Data with the group running
+FOR i_5 := 1 TO 10 DO
+    group_5(Run := TRUE, ModuleFault := FALSE);
+    terminal_5(StartupTime := T#0S, SafeOut1 := TRUE, SafeOut2 := TRUE);
+END_FOR
+AssertEquals_BOOL(Expected := TRUE, Actual := terminal_5.Channel1, Message := 'channel on while the group runs');
+// act: group STOP (the connection stays in Data)
+group_5(Run := FALSE, ModuleFault := FALSE);
+terminal_5(StartupTime := T#0S, SafeOut1 := TRUE, SafeOut2 := TRUE);
+// assert
+AssertEquals_BOOL(Expected := TRUE, Actual := terminal_5.InDataState, Message := 'still in Data');
+AssertEquals_BOOL(Expected := FALSE, Actual := terminal_5.Channel1, Message := 'outputs off with the group in STOP');
+// act: group ERROR
+group_5(Run := TRUE, ModuleFault := TRUE);
+terminal_5(StartupTime := T#0S, SafeOut1 := TRUE, SafeOut2 := TRUE);
+group_5(Run := TRUE, ModuleFault := TRUE);
+terminal_5(StartupTime := T#0S, SafeOut1 := TRUE, SafeOut2 := TRUE);
+AssertEquals_BYTE(Expected := TO_BYTE(E_SafeGroupState.Error), Actual := group_5.State, Message := 'group in ERROR');
+AssertEquals_BOOL(Expected := FALSE, Actual := terminal_5.Channel2, Message := 'outputs off with the group in ERROR');
 TEST_FINISHED_NAMED(__POUNAME());
 ]]></ST>
       </Implementation>
