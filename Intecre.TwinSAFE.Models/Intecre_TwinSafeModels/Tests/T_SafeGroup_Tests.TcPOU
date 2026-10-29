@@ -18,6 +18,12 @@ VAR
     terminal_4 : T_SafeInputTerminal(group := group_4);
     state_4 : INT := 10;
     waitTimer_4 : TON;
+    // Test_RegistersMoreThanSixtyFourBlocks
+    group_5 : T_SafeGroup;
+    blocks_5 : ARRAY[1..70] OF T_SafeAnd(group := group_5);
+    // Test_RefusesTheSixtyFifthConnection
+    group_6 : T_SafeGroup;
+    terminals_6 : ARRAY[1..65] OF T_SafeInputTerminal(group := group_6);
 END_VAR
 ]]></Declaration>
     <Implementation>
@@ -25,6 +31,8 @@ END_VAR
 Test_RunsFunctionBlocksWithoutConnections();
 Test_FbErrorStopsGroupAndErrAckRecovers();
 Test_ConnectionStartupAndComError();
+Test_RegistersMoreThanSixtyFourBlocks();
+Test_RefusesTheSixtyFifthConnection();
 ]]></ST>
     </Implementation>
     <Method Name="Test_ConnectionStartupAndComError" Id="{cc1b8a99-b4a4-5fb2-beeb-9e4f0bff986f}">
@@ -171,6 +179,32 @@ fb_1(AndIn1 := TRUE);
 AssertEquals_BYTE(Expected := TO_BYTE(E_SafeGroupState.Stop), Actual := group_1.State, Message := 'group STOP');
 AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Stop), Actual := fb_1.State, Message := 'FB STOP');
 AssertEquals_BOOL(Expected := FALSE, Actual := group_1.InRun, Message := 'InRun off');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_RegistersMoreThanSixtyFourBlocks" Id="{b8489cc2-d5a6-4149-a78e-6d870772af10}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_RegistersMoreThanSixtyFourBlocks
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// arrange: 70 blocks joined group_5 at initialisation
+// assert
+AssertEquals_UINT(Expected := 70, Actual := group_5.FunctionBlockCount, Message := 'every block registered');
+AssertEquals_BOOL(Expected := FALSE, Actual := group_5.RegistrationRefused, Message := 'none refused');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_RefusesTheSixtyFifthConnection" Id="{439f7621-9428-43d1-8ff8-0e936efabc9c}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_RefusesTheSixtyFifthConnection
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// arrange: 65 terminals tried to join group_6 at initialisation
+// assert
+AssertEquals_UINT(Expected := 64, Actual := group_6.ConnectionCount, Message := 'the cap holds');
+AssertEquals_BOOL(Expected := TRUE, Actual := group_6.RegistrationRefused, Message := 'the refusal is visible');
 TEST_FINISHED_NAMED(__POUNAME());
 ]]></ST>
       </Implementation>

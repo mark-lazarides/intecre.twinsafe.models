@@ -32,7 +32,7 @@ Build and trial a safety application, and the standard-PLC code that talks to it
 | | |
 |---|---|
 | TwinCAT | 3.1 build 4026 |
-| Library version | 0.4.2.0 |
+| Library version | 0.4.3.0 |
 | Libraries | `TcUnit, * (www.tcunit.org)`, `Tc2_Standard`, `Tc2_System`, `Tc3_Module` |
 
 ### Use it
@@ -63,7 +63,7 @@ The project compiles cleanly in TwinCAT 3.1 4026 (verified with *Check all objec
 ```text
 Intecre.TwinSAFE.Models.sln
 bin/                                     published releases
-  Intecre_TwinSafeModels.library         installable library build of the PLC project (0.4.2.0)
+  Intecre_TwinSafeModels.library         installable library build of the PLC project (0.4.3.0)
   Intecre.TwinSAFE.Models.*.nupkg        TcPkg packages of each release
 Intecre.TwinSAFE.Models/                 TwinCAT solution project (tsproj)
   _Config/PLC/                           PLC instance configuration
@@ -116,7 +116,7 @@ Every block is a plain function block with `VAR_INPUT` / `VAR_OUTPUT` pins named
 - **Ports are active when connected.** Each signal input carries an `{attribute 'is_connected'}` flag, so a pair is two channel when both pins are wired, `Restart` connected means manual restart, `EDMx` connected activates the feedback loop, and so on. Unwired pins are ignored, as inactive ports are in TwinSAFE.
 - **Parameters** that live in the Safety Editor property grid (contact type, discrepancy and delay times, options) are one `Parameters` struct input with defaults, normally set in the declaration:
   `eStop : T_SafeEStop := (Parameters := (DiscrepancyTime1 := T#500MS, DelayTime := T#1S));`
-- **Group membership.** Every FB and connection takes its group by reference at initialisation (`eStop : T_SafeEStop(group := group);`) and registers itself, as a block placed in a TwinSAFE group belongs to it. Members read the group's `InRun` and `ErrAck` themselves, and the group scans its members' `Error`, `IsRunning`, `ComError` and `InStartup` outputs each cycle, so there is no group wiring to draw. Call the group before its members; declare it before them (the group is passed by reference, so it must exist when the members initialise). `T_SafeConnShutdown` takes the connection it shuts down the same way: `(group := group, connection := outputTerminal)`. A group holds up to 64 function blocks and 32 connections (`MAX_FUNCTION_BLOCKS`, `MAX_CONNECTIONS` in `T_SafeGroup`); its read-only properties `FunctionBlockCount`, `ConnectionCount` and `GroupState` show what has registered.
+- **Group membership.** Every FB and connection takes its group by reference at initialisation (`eStop : T_SafeEStop(group := group);`) and registers itself, as a block placed in a TwinSAFE group belongs to it. Members read the group's `InRun` and `ErrAck` themselves, and the group scans its members' `Error`, `IsRunning`, `ComError` and `InStartup` outputs each cycle, so there is no group wiring to draw. Call the group before its members; declare it before them (the group is passed by reference, so it must exist when the members initialise). `T_SafeConnShutdown` takes the connection it shuts down the same way: `(group := group, connection := outputTerminal)`. A group holds up to 256 function blocks and 64 connections (`MAX_FUNCTION_BLOCKS`, `MAX_CONNECTIONS` in `T_SafeGroup`; 64 and 32 before 0.4.3.0); its read-only properties `FunctionBlockCount`, `ConnectionCount` and `GroupState` show what has registered. A member that cannot join because the group is full is dropped silently by the registration, except that the group's `RegistrationRefused` output goes TRUE and stays TRUE: an unregistered block still runs (it reads `InRun` through its reference) but its `Error` never reaches the group, so a model with `RegistrationRefused` set is incomplete. Assert it FALSE in a test of any large group.
 
 ```iecst
 VAR
@@ -294,6 +294,7 @@ Blocks use the `T_` prefix, private members `_camelCase`, and state machines use
 
 | Version | Date | Changes |
 |---|---|---|
+| 0.4.3.0 | 2026-10-29 | `T_SafeGroup` holds 256 function blocks and 64 connections (was 64 and 32: a simulated group of door functions had passed the cap and most of its blocks could not put the group in error), and its new `RegistrationRefused` output shows a member that could not join. Two group tests. |
 | 0.4.2.0 | 2026-10-22 | `T_SafeFunctionBlockBase` sets `State` to Run or Stop from the group before `Process`, so a composite without states of its own reports Run to its group without any `State` logic in its chart. The example user FBs drop the `IsRunning` AND that the base body overwrote; their suites assert `IsRunning`. |
 | 0.4.1.1 | 2026-10-21 | The example user FBs call `SUPER^` from their body instead of `Process`, so the base body runs. Releases are published to `bin/` as a `.library` and a TcPkg package; the copy in the repository root is removed. |
 | 0.4.0.0 | 2026-10-19 | `T_SafeInputTerminal8` (EL1918, eight channels) and `T_SafeOutputTerminal2` (EL2912, two channels) in `Core`, with ST test suites. Built and installed with `tclib publish`. |

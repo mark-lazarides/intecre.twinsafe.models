@@ -22,10 +22,11 @@ VAR_OUTPUT
     InRun : BOOL; // the group is in the RUN state (FbRun of the members)
     State : BYTE; // group state code (Map State)
     Diag : BYTE; // group diagnostic code (Map Diag)
+    RegistrationRefused : BOOL; // a block or connection could not join because the group is full (MAX_FUNCTION_BLOCKS, MAX_CONNECTIONS): the model is then incomplete, never expected in use
 END_VAR
 VAR CONSTANT
-    MAX_FUNCTION_BLOCKS : UINT := 64;
-    MAX_CONNECTIONS : UINT := 32;
+    MAX_FUNCTION_BLOCKS : UINT := 256;
+    MAX_CONNECTIONS : UINT := 64;
 END_VAR
 VAR
     _functionBlocks : ARRAY[1..MAX_FUNCTION_BLOCKS] OF POINTER TO T_SafeFunctionBlockBase;
@@ -197,6 +198,7 @@ END_VAR
 END_FOR
 
 IF _connectionCount >= MAX_CONNECTIONS THEN
+    RegistrationRefused := TRUE;
     RETURN;
 END_IF
 
@@ -223,6 +225,7 @@ END_VAR
 END_FOR
 
 IF _functionBlockCount >= MAX_FUNCTION_BLOCKS THEN
+    RegistrationRefused := TRUE;
     RETURN;
 END_IF
 
