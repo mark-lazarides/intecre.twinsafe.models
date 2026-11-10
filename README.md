@@ -34,7 +34,7 @@ Build and trial a safety application, and the standard-PLC code that talks to it
 |---|---|
 | TwinCAT | 3.1 build 4026 |
 | Library version | 0.4.4.0 |
-| Libraries | `TcUnit, * (www.tcunit.org)`, `Intecre.Utilities, * (Intecre Ltd)` (4.1.0.0 or later, for the logger and `T_NamedBase`; no TcPkg package carries it yet, so the `Intecre.TwinSAFE.Models` package does not pull it in: install it by hand), `Tc2_Standard`, `Tc2_System`, `Tc3_Module` |
+| Libraries | `TcUnit, * (www.tcunit.org)`, `Intecre.Utilities, * (Intecre Ltd)` (4.1.0.0 or later, for the logger and `T_NamedBase`; the `Intecre.TwinSAFE.Models` package from 0.5.0.1 depends on the `Intecre.Utilities` package 4.1.0 on the Intecre feed, which itself needs Beckhoff's `testing` feed enabled for `Tc2_MDP`; 0.5.0.0 carries no dependency, so install `Intecre.Utilities` by hand with it), `Tc2_Standard`, `Tc2_System`, `Tc3_Module` |
 
 ### Use it
 

@@ -21,7 +21,13 @@
     "installationLevel1": true,
     "requireLicenseAcceptance": false,
     "extraTags": [],
-    "dependencies": [],
+    "dependencies": [
+      {
+        "id": "Intecre.Utilities",
+        "version": "4.1.0",
+        "source": "Intecre"
+      }
+    ],
     "overrides": {}
   }
 }
