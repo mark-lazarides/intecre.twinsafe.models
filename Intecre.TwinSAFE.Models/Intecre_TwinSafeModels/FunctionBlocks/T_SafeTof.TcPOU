@@ -2,6 +2,8 @@
 <TcPlcObject Version="1.1.0.1">
   <POU Name="T_SafeTof" Id="{4c8768c1-feaa-57e6-8bc9-bead84a7560f}" SpecialFunc="None">
     <Declaration><![CDATA[// Model of the TwinSAFE FB TOF (switch-off delay).
+// The Safety Editor refuses a TOF with TofIn1 unconnected: the model then reports Error with diagnostic
+// bit 15 instead of running (see T_SafeFunctionBlockBase).
 {attribute 'reflection'}
 FUNCTION_BLOCK T_SafeTof EXTENDS T_SafeFunctionBlockBase
 VAR_INPUT
@@ -22,6 +24,20 @@ END_VAR
       <ST><![CDATA[SUPER^();
 ]]></ST>
     </Implementation>
+    <Method Name="ConfigurationOk" Id="{495cf629-c613-4068-9cb6-e2c85adff886}">
+      <Declaration><![CDATA[// TofIn1 must be connected (Safety Editor: "Inport TofIn1 of TOF must be connected").
+METHOD PROTECTED ConfigurationOk : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT _tofIn1Connected THEN
+    _configurationFault := 'T_SafeTof: Inport TofIn1 of TOF must be connected';
+    RETURN;
+END_IF
+
+ConfigurationOk := TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="Process" Id="{2251cce6-3005-5361-995b-d7a121020ce4}">
       <Declaration><![CDATA[METHOD PROTECTED Process
 VAR

@@ -15,6 +15,12 @@ VAR
     // Test_StoppedGivesNoOutput
     group_4 : T_SafeGroup;
     fb_4 : T_SafeAnd(group := group_4);
+    // Test_OneConnectedInputIsRefused
+    group_5 : T_SafeGroup;
+    fb_5 : T_SafeAnd(group := group_5);
+    // Test_RaiseOnRefusedConfigurationStopsHard
+    group_6 : T_SafeGroup;
+    fb_6 : T_SafeAnd(group := group_6);
 END_VAR
 ]]></Declaration>
     <Implementation>
@@ -22,6 +28,8 @@ END_VAR
 Test_OneInputFalseGivesSafe();
 Test_UnconnectedInputsIgnoredAndMakeContactNegated();
 Test_StoppedGivesNoOutput();
+Test_OneConnectedInputIsRefused();
+Test_RaiseOnRefusedConfigurationStopsHard();
 ]]></ST>
     </Implementation>
     <Method Name="Test_AllConnectedInputsTrueGivesRun" Id="{5d2572a6-a40b-5f74-bf0e-83b17b472efc}">
@@ -61,7 +69,7 @@ TEST_FINISHED_NAMED(__POUNAME());
         <ST><![CDATA[TcUnit.TEST(__POUNAME());
 // act
 group_4(Run := FALSE);
-fb_4(AndIn1 := TRUE);
+fb_4(AndIn1 := TRUE, AndIn2 := TRUE);
 // assert
 AssertEquals_BOOL(Expected := FALSE, Actual := fb_4.AndOut, Message := 'no output while the group is stopped');
 AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Stop), Actual := fb_4.State, Message := 'state STOP');
@@ -79,6 +87,67 @@ group_3(Run := TRUE);
 fb_3(AndIn1 := TRUE, AndIn2 := FALSE);
 // assert
 AssertEquals_BOOL(Expected := TRUE, Actual := fb_3.AndOut, Message := 'unconnected inputs ignored, make contact negated');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_OneConnectedInputIsRefused" Id="{550771dc-9450-441c-8039-d9fe892116df}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_OneConnectedInputIsRefused
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// arrange / act: AndIn1 is the only connected input, which the Safety Editor refuses
+group_5(Run := TRUE);
+fb_5(AndIn1 := TRUE);
+group_5(Run := TRUE);
+fb_5(AndIn1 := TRUE);
+// assert
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_5.Error, Message := 'configuration error reported');
+AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Error), Actual := fb_5.State, Message := 'state ERROR');
+AssertEquals_WORD(Expected := WORD#16#8000, Actual := fb_5.Diag, Message := 'diag bit 15 configuration refused');
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_5.AndOut, Message := 'AndOut stays at its safe value');
+AssertEquals_BOOL(Expected := TRUE, Actual := group_5.FbErr, Message := 'the group sees an FB error');
+// act: ErrAck 0 -> 1 -> 0 does not clear a configuration error
+group_5(Run := TRUE, ErrAck := TRUE);
+fb_5(AndIn1 := TRUE);
+group_5(Run := TRUE, ErrAck := TRUE);
+fb_5(AndIn1 := TRUE);
+group_5(Run := TRUE, ErrAck := FALSE);
+fb_5(AndIn1 := TRUE);
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_5.Error, Message := 'error not acknowledged');
+AssertEquals_WORD(Expected := WORD#16#8000, Actual := fb_5.Diag, Message := 'diag bit 15 kept');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_RaiseOnRefusedConfigurationStopsHard" Id="{7c46e575-f969-43e1-a985-5408a9a57b38}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_RaiseOnRefusedConfigurationStopsHard
+VAR
+    exc : __SYSTEM.ExceptionCode;
+    caught : __SYSTEM.ExceptionCode;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// arrange: a one-input AND, the group's opt-in hard stop switched on for this call only
+caught := __SYSTEM.ExceptionCode.RTSEXCPT_NOEXCEPTION;
+group_6.RaiseOnRefusedConfiguration := TRUE;
+// act
+__TRY
+    group_6(Run := TRUE);
+    fb_6(AndIn1 := TRUE);
+__CATCH(exc)
+    caught := exc;
+__FINALLY
+    group_6.RaiseOnRefusedConfiguration := FALSE;
+__ENDTRY
+// assert: the code given to F_RaiseException does not reach __CATCH on TwinCAT 3.1 4026 (the x64
+// usermode runtime delivered 16#E8940001 instead of RTSEXCPT_IO_CONFIG_ERROR), so only the arrival
+// of an exception is checked; the block's own outputs carry the reason
+AssertEquals_BOOL(Expected := TRUE, Actual := (caught <> __SYSTEM.ExceptionCode.RTSEXCPT_NOEXCEPTION), Message := 'an exception was raised and caught');
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_6.Error, Message := 'error reported before the exception');
+AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Error), Actual := fb_6.State, Message := 'state ERROR');
+AssertEquals_WORD(Expected := WORD#16#8000, Actual := fb_6.Diag, Message := 'diag bit 15 configuration refused');
 TEST_FINISHED_NAMED(__POUNAME());
 ]]></ST>
       </Implementation>

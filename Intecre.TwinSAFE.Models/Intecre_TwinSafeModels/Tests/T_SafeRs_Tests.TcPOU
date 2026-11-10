@@ -6,10 +6,14 @@ VAR
     // Test_ResetDominantLatch
     group_1 : T_SafeGroup;
     fb_1 : T_SafeRs(group := group_1);
+    // Test_UnconnectedSetIsRefused
+    group_2 : T_SafeGroup;
+    fb_2 : T_SafeRs(group := group_2);
 END_VAR
 ]]></Declaration>
     <Implementation>
       <ST><![CDATA[Test_ResetDominantLatch();
+Test_UnconnectedSetIsRefused();
 ]]></ST>
     </Implementation>
     <Method Name="Test_ResetDominantLatch" Id="{d79316f9-bebc-55fe-a01d-0952a8c2e902}">
@@ -25,6 +29,35 @@ fb_1(Set := FALSE, Reset := FALSE);
 AssertEquals_BOOL(Expected := TRUE, Actual := fb_1.RsOut, Message := 'held');
 fb_1(Set := TRUE, Reset := TRUE);
 AssertEquals_BOOL(Expected := FALSE, Actual := fb_1.RsOut, Message := 'reset dominant');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_UnconnectedSetIsRefused" Id="{e2291759-74c8-4cd7-9edc-f2cc989bdf26}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_UnconnectedSetIsRefused
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// arrange / act: Set is unconnected, which the Safety Editor refuses
+group_2(Run := TRUE);
+fb_2(Reset := FALSE);
+group_2(Run := TRUE);
+fb_2(Reset := FALSE);
+// assert
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_2.Error, Message := 'configuration error reported');
+AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Error), Actual := fb_2.State, Message := 'state ERROR');
+AssertEquals_WORD(Expected := WORD#16#8000, Actual := fb_2.Diag, Message := 'diag bit 15 configuration refused');
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_2.RsOut, Message := 'RsOut stays at its safe value');
+AssertEquals_BOOL(Expected := TRUE, Actual := group_2.FbErr, Message := 'the group sees an FB error');
+// act: ErrAck 0 -> 1 -> 0 does not clear a configuration error
+group_2(Run := TRUE, ErrAck := TRUE);
+fb_2(Reset := FALSE);
+group_2(Run := TRUE, ErrAck := TRUE);
+fb_2(Reset := FALSE);
+group_2(Run := TRUE, ErrAck := FALSE);
+fb_2(Reset := FALSE);
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_2.Error, Message := 'error not acknowledged');
+AssertEquals_WORD(Expected := WORD#16#8000, Actual := fb_2.Diag, Message := 'diag bit 15 kept');
 TEST_FINISHED_NAMED(__POUNAME());
 ]]></ST>
       </Implementation>

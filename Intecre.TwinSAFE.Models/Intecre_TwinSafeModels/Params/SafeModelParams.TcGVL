@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <GVL Name="SafeModelParams" Id="{219792cc-55bf-4d78-b641-1356c30faac0}" ParameterList="True">
+    <Declaration><![CDATA[// Library parameters of Intecre.TwinSAFE.Models: the project-wide defaults, set per project in the
+// Library Manager's parameter view without rebuilding the library. A parameter list must be constant,
+// so the run-time switch lives on T_SafeGroup (RaiseOnRefusedConfiguration), initialised from here.
+{attribute 'qualified_only'}
+VAR_GLOBAL CONSTANT
+    // Default of T_SafeGroup.RaiseOnRefusedConfiguration for every group. TRUE: a block of the group whose
+    // configuration the TwinSAFE Safety Editor refuses (see T_SafeFunctionBlockBase) raises
+    // RTSEXCPT_IO_CONFIG_ERROR with F_RaiseException after it has reported Error, so the controller stops
+    // on the first cycle unless the call is in a __TRY block. FALSE: the block only reports Error,
+    // State = Error and diagnostic bit 15, and logs the fault once.
+    RAISE_ON_REFUSED_CONFIGURATION : BOOL := FALSE;
+END_VAR
+]]></Declaration>
+  </GVL>
+</TcPlcObject>

@@ -51,7 +51,10 @@ VAR
 END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[TcUnit.RUN();
+      <ST><![CDATA[// Intecre.Utilities logs nothing until a project sets LogConfig.LogLevel; Error lets the
+// refused-configuration lines of the configuration tests through to the TwinCAT log.
+LogConfig.LogLevel := E_LogSeverity.Error;
+TcUnit.RUN();
 ]]></ST>
     </Implementation>
   </POU>

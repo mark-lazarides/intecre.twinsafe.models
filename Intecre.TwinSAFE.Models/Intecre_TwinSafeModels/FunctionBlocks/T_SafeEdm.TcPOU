@@ -3,6 +3,8 @@
   <POU Name="T_SafeEdm" Id="{94513746-5a4a-593d-9559-f1f6e17d8ef6}" SpecialFunc="None">
     <Declaration><![CDATA[// Model of the TwinSAFE FB EDM (external device monitor):
 // Mon2 must take the opposite value to Mon1 within the configured switch-on / switch-off time.
+// The Safety Editor refuses an EDM with Mon1 or Mon2 unconnected: the model then reports Error with
+// diagnostic bit 15 instead of running (see T_SafeFunctionBlockBase).
 {attribute 'reflection'}
 FUNCTION_BLOCK T_SafeEdm EXTENDS T_SafeFunctionBlockBase
 VAR_INPUT
@@ -26,6 +28,23 @@ END_VAR
 IsRunning := (_state = E_SafeEdmState.MonOn) OR (_state = E_SafeEdmState.MonOff);
 ]]></ST>
     </Implementation>
+    <Method Name="ConfigurationOk" Id="{56dca0c8-9bf5-4c48-a8eb-d091ea159f5a}">
+      <Declaration><![CDATA[// Mon1 and Mon2 must both be connected (Safety Editor: "Inport Mon1 of EDM must be connected").
+METHOD PROTECTED ConfigurationOk : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT _mon1Connected THEN
+    _configurationFault := 'T_SafeEdm: Inport Mon1 of EDM must be connected';
+    RETURN;
+ELSIF NOT _mon2Connected THEN
+    _configurationFault := 'T_SafeEdm: Inport Mon2 of EDM must be connected';
+    RETURN;
+END_IF
+
+ConfigurationOk := TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="Process" Id="{3cdf0347-8054-5d03-b684-c97c45933410}">
       <Declaration><![CDATA[METHOD PROTECTED Process
 VAR

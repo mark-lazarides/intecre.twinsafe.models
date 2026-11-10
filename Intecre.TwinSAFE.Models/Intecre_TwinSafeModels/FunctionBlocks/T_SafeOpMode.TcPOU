@@ -4,6 +4,8 @@
     <Declaration><![CDATA[// Model of the TwinSAFE FB OPMODE (operating mode selector).
 // Exactly one connected OpIn input must be TRUE for the matching OpOut to be set.
 // Manual restart is active when the Restart port is connected.
+// The Safety Editor refuses an OPMODE with fewer than two OpIn ports connected: the model then reports
+// Error with diagnostic bit 15 instead of running (see T_SafeFunctionBlockBase).
 {attribute 'reflection'}
 FUNCTION_BLOCK T_SafeOpMode EXTENDS T_SafeFunctionBlockBase
 VAR_INPUT
@@ -58,6 +60,32 @@ END_VAR
       <ST><![CDATA[SUPER^();
 ]]></ST>
     </Implementation>
+    <Method Name="ConfigurationOk" Id="{05b341b9-c83d-41f7-96c2-c4323e462074}">
+      <Declaration><![CDATA[// At least two OpIn ports must be connected (Safety Editor: "OPMODE does not have at least 2 input ports connected").
+METHOD PROTECTED ConfigurationOk : BOOL
+VAR
+    connectedInputs : USINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[connectedInputs := BOOL_TO_USINT(_opIn1Connected)
+    + BOOL_TO_USINT(_opIn2Connected)
+    + BOOL_TO_USINT(_opIn3Connected)
+    + BOOL_TO_USINT(_opIn4Connected)
+    + BOOL_TO_USINT(_opIn5Connected)
+    + BOOL_TO_USINT(_opIn6Connected)
+    + BOOL_TO_USINT(_opIn7Connected)
+    + BOOL_TO_USINT(_opIn8Connected);
+
+IF connectedInputs < 2 THEN
+    _configurationFault := 'T_SafeOpMode: OPMODE does not have at least 2 input ports connected';
+    RETURN;
+END_IF
+
+ConfigurationOk := TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="Process" Id="{33fa2768-1569-5fef-9991-8b2fdfcd3ef0}">
       <Declaration><![CDATA[METHOD PROTECTED Process
 VAR

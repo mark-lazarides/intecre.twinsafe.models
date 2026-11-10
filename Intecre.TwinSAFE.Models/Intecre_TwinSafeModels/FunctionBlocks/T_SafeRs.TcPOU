@@ -2,6 +2,8 @@
 <TcPlcObject Version="1.1.0.1">
   <POU Name="T_SafeRs" Id="{e620cd2a-846a-5dd3-8008-ec245bc27373}" SpecialFunc="None">
     <Declaration><![CDATA[// Model of the TwinSAFE FB RS (reset dominant latch).
+// The Safety Editor refuses an RS with Set or Reset unconnected: the model then reports Error with
+// diagnostic bit 15 instead of running (see T_SafeFunctionBlockBase).
 {attribute 'reflection'}
 FUNCTION_BLOCK T_SafeRs EXTENDS T_SafeFunctionBlockBase
 VAR_INPUT
@@ -24,6 +26,23 @@ END_VAR
       <ST><![CDATA[SUPER^();
 ]]></ST>
     </Implementation>
+    <Method Name="ConfigurationOk" Id="{d0a116af-3fb8-47bb-be2e-5d59e9963190}">
+      <Declaration><![CDATA[// Set and Reset must both be connected (Safety Editor: "Inport Set of RS must be connected").
+METHOD PROTECTED ConfigurationOk : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT _setConnected THEN
+    _configurationFault := 'T_SafeRs: Inport Set of RS must be connected';
+    RETURN;
+ELSIF NOT _resetConnected THEN
+    _configurationFault := 'T_SafeRs: Inport Reset of RS must be connected';
+    RETURN;
+END_IF
+
+ConfigurationOk := TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="Process" Id="{84936541-d311-5217-9cf7-620653b0d636}">
       <Declaration><![CDATA[METHOD PROTECTED Process
 VAR

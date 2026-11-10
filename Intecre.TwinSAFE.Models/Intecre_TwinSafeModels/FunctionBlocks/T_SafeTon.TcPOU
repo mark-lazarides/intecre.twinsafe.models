@@ -2,6 +2,8 @@
 <TcPlcObject Version="1.1.0.1">
   <POU Name="T_SafeTon" Id="{1b95320b-0d3a-5923-8ff0-0651093a6525}" SpecialFunc="None">
     <Declaration><![CDATA[// Model of the TwinSAFE FB TON (switch-on delay).
+// The Safety Editor refuses a TON with TonIn1 unconnected: the model then reports Error with diagnostic
+// bit 15 instead of running (see T_SafeFunctionBlockBase).
 {attribute 'reflection'}
 FUNCTION_BLOCK T_SafeTon EXTENDS T_SafeFunctionBlockBase
 VAR_INPUT
@@ -22,6 +24,20 @@ END_VAR
       <ST><![CDATA[SUPER^();
 ]]></ST>
     </Implementation>
+    <Method Name="ConfigurationOk" Id="{1e78c1dc-bac7-480d-a034-28eb147ef6d8}">
+      <Declaration><![CDATA[// TonIn1 must be connected (Safety Editor: "Inport TonIn1 of TON must be connected").
+METHOD PROTECTED ConfigurationOk : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT _tonIn1Connected THEN
+    _configurationFault := 'T_SafeTon: Inport TonIn1 of TON must be connected';
+    RETURN;
+END_IF
+
+ConfigurationOk := TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="Process" Id="{e4417956-7233-5c5f-80ff-76deef0eb2c0}">
       <Declaration><![CDATA[METHOD PROTECTED Process
 VAR

@@ -9,12 +9,29 @@
 // Derived classes implement Process(). Before Process() the base sets State to Run while the group
 // runs and to Stop otherwise, so a block built only from other blocks needs no State logic; a block
 // with states of its own overwrites State in Process(), and writes Error and Diag when it has them.
+//
+// Configuration check. The Safety Editor refuses some wirings and parameter values at project verify
+// (an AND with one input, an SR with Reset unwired, an EDM reset time that is not a multiple of 10 ms).
+// A block with such a rule overrides ConfigurationOk() and writes the editor's message to
+// _configurationFault when the rule is broken. The base then runs the block as a stopped block (outputs
+// at their safe value), reports Error with State = Error and diagnostic bit 15 (16#8000, a bit no
+// TwinSAFE FB uses), logs the fault once through the Intecre.Utilities logger with the instance name in
+// front (taken from the private T_NamedBase member _log; the project has to set LogConfig.LogLevel to
+// Error or lower, as the logger is silent by default), and keeps the error through every ErrAck: a
+// configuration error cannot be acknowledged away, only rewired.
+// With the group's RaiseOnRefusedConfiguration TRUE (default SafeModelParams.RAISE_ON_REFUSED_CONFIGURATION,
+// a library parameter) the base also raises RTSEXCPT_IO_CONFIG_ERROR with F_RaiseException after
+// reporting, so a simulation stops hard on the first cycle unless the call sits in a __TRY block
+// (a __CATCH on 4026 receives a TwinCAT code, not RTSEXCPT_IO_CONFIG_ERROR; check Error and Diag).
 FUNCTION_BLOCK ABSTRACT T_SafeFunctionBlockBase
 VAR_OUTPUT
     Error : BOOL; // FB Error output
     State : BYTE; // FB state code (Map State)
     Diag : WORD; // FB diagnostic bits (Map Diag)
     IsRunning : BOOL; // FB in the RUN state
+END_VAR
+VAR CONSTANT
+    CONFIGURATION_REFUSED_DIAG_BIT : INT := 15; // Diag bit set while the Safety Editor would refuse the configuration
 END_VAR
 VAR
     _group : REFERENCE TO T_SafeGroup;
@@ -23,6 +40,10 @@ VAR
     _errAckPrev : BOOL;
     _errAckRisingEdge : BOOL;
     _errAckFallingEdge : BOOL;
+    _configurationRefused : BOOL; // ConfigurationOk() returned FALSE this cycle
+    _configurationFault : T_MaxString; // the editor's message for the broken rule, written by ConfigurationOk()
+    _configurationLogged : BOOL; // the fault has been logged (once per instance)
+    _log : T_NamedBase; // supplies the instance path for the log line; its InstanceName ends in ._log, which ReportRefusedConfiguration trims
 END_VAR
 ]]></Declaration>
     <Implementation>
@@ -34,6 +55,16 @@ ELSE
     _fbRun  := FALSE;
     _errAck := FALSE;
 END_IF
+
+_configurationRefused := NOT ConfigurationOk();
+
+IF _configurationRefused THEN
+    // the Safety Editor refuses this wiring or parameter set: the block runs as a stopped block, so its
+    // outputs take their safe value, and the error reported below is not acknowledged
+    _fbRun  := FALSE;
+    _errAck := FALSE;
+END_IF
+
 _errAckRisingEdge  := _errAck AND NOT _errAckPrev;
 _errAckFallingEdge := NOT _errAck AND _errAckPrev;
 _errAckPrev        := _errAck;
@@ -42,7 +73,18 @@ _errAckPrev        := _errAck;
 // that raised them clears them.
 State := TO_BYTE(SEL(_fbRun, E_SafeFbState.Stop, E_SafeFbState.Run));
 Process();
+
+IF _configurationRefused THEN
+    Error := TRUE;
+    State := TO_BYTE(E_SafeFbState.Error);
+    SetDiagBit(CONFIGURATION_REFUSED_DIAG_BIT);
+END_IF
+
 IsRunning := (State = TO_BYTE(E_SafeFbState.Run));
+
+IF _configurationRefused THEN
+    ReportRefusedConfiguration();
+END_IF
 ]]></ST>
     </Implementation>
     <Method Name="ClearDiagBit" Id="{49190d3a-7696-50e6-bca4-a0c8c2d1b475}">
@@ -53,6 +95,17 @@ END_VAR
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[Diag := Diag AND NOT SHL(WORD#1, bitIndex);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ConfigurationOk" Id="{3fb0a072-16e6-4c31-97d2-5fa4489bc1bd}">
+      <Declaration><![CDATA[// TRUE when the block is wired and parameterised as the TwinSAFE Safety Editor accepts it. A block
+// with a rule overrides this method; when the rule is broken it writes the editor's own message to
+// _configurationFault and returns FALSE. The base then reports the block in Error (see the header).
+METHOD PROTECTED ConfigurationOk : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[ConfigurationOk := TRUE;
 ]]></ST>
       </Implementation>
     </Method>
@@ -76,6 +129,46 @@ END_VAR
 ]]></Declaration>
       <Implementation>
         <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="ReportRefusedConfiguration" Id="{d0177a4a-d247-431f-80db-d93bc4d4c0ea}">
+      <Declaration><![CDATA[// Logs the refused configuration once per instance as '<instance>: <block type>: <editor's rule> (...)',
+// the instance being _log.InstanceName minus its own '._log' segment, then stops the controller with
+// RTSEXCPT_IO_CONFIG_ERROR when the group's RaiseOnRefusedConfiguration asks for it (a block without a
+// group follows the library parameter). Called after Error, State and Diag have been written, so a
+// __CATCH sees the block already in Error. The logger is Intecre.Utilities' F_LogError, which is silent
+// until the project sets LogConfig.LogLevel.
+METHOD PRIVATE ReportRefusedConfiguration
+VAR
+    instance : T_MaxString;
+    raise : BOOL;
+END_VAR
+VAR CONSTANT
+    MEMBER_SUFFIX : STRING := '._log';
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT _configurationLogged THEN
+    _configurationLogged := TRUE;
+    instance := _log.InstanceName;
+
+    IF RIGHT(instance, LEN(MEMBER_SUFFIX)) = MEMBER_SUFFIX THEN
+        instance := LEFT(instance, LEN(instance) - LEN(MEMBER_SUFFIX));
+    END_IF
+
+    F_LogError(CONCAT(CONCAT(instance, ': '), CONCAT(_configurationFault, ' (the TwinSAFE Safety Editor refuses this configuration)')));
+END_IF
+
+IF __ISVALIDREF(_group) THEN
+    raise := _group.RaiseOnRefusedConfiguration;
+ELSE
+    raise := SafeModelParams.RAISE_ON_REFUSED_CONFIGURATION;
+END_IF
+
+IF raise THEN
+    F_RaiseException(TO_UDINT(__SYSTEM.ExceptionCode.RTSEXCPT_IO_CONFIG_ERROR));
+END_IF
+]]></ST>
       </Implementation>
     </Method>
     <Method Name="SetDiagBit" Id="{8e5efcfc-fc2b-5a77-a9d5-44f766f6363b}">

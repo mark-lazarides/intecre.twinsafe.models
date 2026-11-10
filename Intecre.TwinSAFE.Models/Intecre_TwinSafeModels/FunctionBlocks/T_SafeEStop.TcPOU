@@ -5,6 +5,8 @@
 // Up to eight emergency stop inputs in four pairs, immediate and delayed outputs,
 // two feedback loops (EDM) and a manual restart requiring a 0 -> 1 -> 0 sequence on Restart.
 // Ports are active when connected.
+// The Safety Editor refuses an EDM reset time that is not 0 ms, a multiple of 10 ms and at most 60000 ms:
+// the model then reports Error with diagnostic bit 15 instead of running (see T_SafeFunctionBlockBase).
 {attribute 'reflection'}
 FUNCTION_BLOCK T_SafeEStop EXTENDS T_SafeFunctionBlockBase
 VAR_INPUT
@@ -63,6 +65,23 @@ END_VAR
       <ST><![CDATA[SUPER^();
 ]]></ST>
     </Implementation>
+    <Method Name="ConfigurationOk" Id="{00a83a53-5a60-403f-8118-d44cf3fbf589}">
+      <Declaration><![CDATA[// The EDM reset times must be 0 ms or a multiple of 10 ms up to 60000 ms (Safety Editor: "'Reset Time' parameter ... has to be 0 ms or a multiple of 10 ms and maximal 60000 ms").
+METHOD PROTECTED ConfigurationOk : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT F_SafeResetTimeOk(Parameters.Edm1ResetTime) THEN
+    _configurationFault := 'T_SafeEStop: $'Reset Time$' parameter of EDM1 of ESTOP has to be 0 ms or a multiple of 10 ms and maximal 60000 ms';
+    RETURN;
+ELSIF NOT F_SafeResetTimeOk(Parameters.Edm2ResetTime) THEN
+    _configurationFault := 'T_SafeEStop: $'Reset Time$' parameter of EDM2 of ESTOP has to be 0 ms or a multiple of 10 ms and maximal 60000 ms';
+    RETURN;
+END_IF
+
+ConfigurationOk := TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="EdmInputsOk" Id="{5732e1ad-a6c0-56fd-8c68-c3e8b05d9262}">
       <Declaration><![CDATA[// Checks the EDM inputs at restart and records diagnostic bits 4/5 on failure.
 METHOD PRIVATE EdmInputsOk : BOOL
@@ -164,7 +183,7 @@ _pairs[1](
     MakeContact2 := Parameters.EStopIn2MakeContact,
     DiscrepancyTime := Parameters.DiscrepancyTime1,
     Monitor := _fbRun,
-    SafeInputsAfterDiscError := Parameters.SafeInputsAfterDiscError,
+    SafeInputsAfterDiscError := TRUE, // the EL6910 always applies it to ESTOP, whatever the parameter says
     Acknowledge := acknowledge
 );
 
@@ -177,7 +196,7 @@ _pairs[2](
     MakeContact2 := Parameters.EStopIn4MakeContact,
     DiscrepancyTime := Parameters.DiscrepancyTime2,
     Monitor := _fbRun,
-    SafeInputsAfterDiscError := Parameters.SafeInputsAfterDiscError,
+    SafeInputsAfterDiscError := TRUE, // the EL6910 always applies it to ESTOP, whatever the parameter says
     Acknowledge := acknowledge
 );
 
@@ -190,7 +209,7 @@ _pairs[3](
     MakeContact2 := Parameters.EStopIn6MakeContact,
     DiscrepancyTime := Parameters.DiscrepancyTime3,
     Monitor := _fbRun,
-    SafeInputsAfterDiscError := Parameters.SafeInputsAfterDiscError,
+    SafeInputsAfterDiscError := TRUE, // the EL6910 always applies it to ESTOP, whatever the parameter says
     Acknowledge := acknowledge
 );
 
@@ -203,7 +222,7 @@ _pairs[4](
     MakeContact2 := Parameters.EStopIn8MakeContact,
     DiscrepancyTime := Parameters.DiscrepancyTime4,
     Monitor := _fbRun,
-    SafeInputsAfterDiscError := Parameters.SafeInputsAfterDiscError,
+    SafeInputsAfterDiscError := TRUE, // the EL6910 always applies it to ESTOP, whatever the parameter says
     Acknowledge := acknowledge
 );
 

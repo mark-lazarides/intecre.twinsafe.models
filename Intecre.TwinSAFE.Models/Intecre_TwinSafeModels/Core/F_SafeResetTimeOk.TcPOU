@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1">
+  <POU Name="F_SafeResetTimeOk" Id="{ce4b19f0-23c1-4fbc-ab26-bd93616bf2ba}" SpecialFunc="None">
+    <Declaration><![CDATA[// TRUE when an EDM 'Reset Time' parameter is one the Safety Editor accepts: 0 ms (off) or a multiple
+// of 10 ms, and at most 60000 ms. The editor reports "'Reset Time' parameter ... has to be 0 ms or a
+// multiple of 10 ms and maximal 60000 ms" otherwise.
+FUNCTION F_SafeResetTimeOk : BOOL
+VAR_INPUT
+    resetTime : TIME;
+END_VAR
+VAR CONSTANT
+    MAX_RESET_TIME : TIME := T#60S;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF resetTime > MAX_RESET_TIME THEN
+    RETURN;
+END_IF
+
+F_SafeResetTimeOk := (TIME_TO_UDINT(resetTime) MOD 10 = 0);
+]]></ST>
+    </Implementation>
+  </POU>
+</TcPlcObject>

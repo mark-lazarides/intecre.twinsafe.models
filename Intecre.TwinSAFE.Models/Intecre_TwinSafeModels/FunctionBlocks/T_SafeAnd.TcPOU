@@ -2,6 +2,8 @@
 <TcPlcObject Version="1.1.0.1">
   <POU Name="T_SafeAnd" Id="{dfa764bc-6411-52e8-b841-f2d8e0793a04}" SpecialFunc="None">
     <Declaration><![CDATA[// Model of the TwinSAFE FB AND. Connected inputs are active; AndIn1 may be a standard PLC signal.
+// The Safety Editor refuses an AND with fewer than two AndIn ports connected: the model then reports
+// Error with diagnostic bit 15 instead of running (see T_SafeFunctionBlockBase).
 {attribute 'reflection'}
 FUNCTION_BLOCK T_SafeAnd EXTENDS T_SafeFunctionBlockBase
 VAR_INPUT
@@ -42,6 +44,32 @@ END_VAR
       <ST><![CDATA[SUPER^();
 ]]></ST>
     </Implementation>
+    <Method Name="ConfigurationOk" Id="{0c8a62bf-833d-43be-90d0-2d5f5894261a}">
+      <Declaration><![CDATA[// At least two AndIn ports must be connected (Safety Editor: "AND does not have at least 2 input ports active and connected").
+METHOD PROTECTED ConfigurationOk : BOOL
+VAR
+    connectedInputs : USINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[connectedInputs := BOOL_TO_USINT(_andIn1Connected)
+    + BOOL_TO_USINT(_andIn2Connected)
+    + BOOL_TO_USINT(_andIn3Connected)
+    + BOOL_TO_USINT(_andIn4Connected)
+    + BOOL_TO_USINT(_andIn5Connected)
+    + BOOL_TO_USINT(_andIn6Connected)
+    + BOOL_TO_USINT(_andIn7Connected)
+    + BOOL_TO_USINT(_andIn8Connected);
+
+IF connectedInputs < 2 THEN
+    _configurationFault := 'T_SafeAnd: AND does not have at least 2 input ports active and connected';
+    RETURN;
+END_IF
+
+ConfigurationOk := TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="Process" Id="{366e4848-7809-524f-b755-30adf662f58e}">
       <Declaration><![CDATA[METHOD PROTECTED Process
 VAR

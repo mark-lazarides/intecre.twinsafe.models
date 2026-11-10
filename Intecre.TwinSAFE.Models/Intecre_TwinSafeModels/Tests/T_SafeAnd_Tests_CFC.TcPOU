@@ -4352,6 +4352,36 @@ Test_StoppedGivesNoOutput();
             <v n="DestPinId">47L</v>
             <v n="Id">81L</v>
           </o>
+          <o t="CFCInputElement">
+            <o n="Output" t="CFCOutputPin">
+              <v n="Bounds">"0, 0, 0, 0"</v>
+              <n n="ElementGroupId" />
+              <v n="Negated">false</v>
+              <v n="SetReset" t="SetReset">None</v>
+              <v n="SetResetRef" t="SetResetRef">None</v>
+              <v n="PretendsToBeConnected">false</v>
+              <v n="Id">127L</v>
+            </o>
+            <o n="Text" t="CFCText">
+              <v n="Bounds">"0, 0, 0, 0"</v>
+              <n n="ElementGroupId" />
+              <v n="Text">"TRUE"</v>
+              <v n="Modifiable">true</v>
+              <v n="Id">128L</v>
+            </o>
+            <v n="PageArea">3</v>
+            <v n="Bounds">"2, 21, 0, 0"</v>
+            <n n="ElementGroupId" />
+            <v n="OwningPageId">-1L</v>
+            <v n="Id">129L</v>
+          </o>
+          <o t="CFCConnection">
+            <v n="Bounds">"0, 0, 0, 0"</v>
+            <n n="ElementGroupId" />
+            <v n="SourcePinId">127L</v>
+            <v n="DestPinId">48L</v>
+            <v n="Id">130L</v>
+          </o>
           <o t="CFCBoxElement">
             <o n="Inputs" t="CFCItemList">
               <l2 n="InnerList" cet="CFCInputPin">

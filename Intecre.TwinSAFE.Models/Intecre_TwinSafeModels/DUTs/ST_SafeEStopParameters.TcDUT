@@ -21,7 +21,9 @@ STRUCT
     DelayTime : TIME; // switch-off delay of EStopDelOut
     Edm1ResetTime : TIME; // EL6910: EDM1 must drop within this time of EStopOut switching on. T#0S disables
     Edm2ResetTime : TIME;
-    SafeInputsAfterDiscError : BOOL := TRUE; // always TRUE on EL6910
+    SafeInputsAfterDiscError : BOOL; // Safety Editor checkbox, FALSE for a new block; the EL6910 always applies
+        // 'Safe Inputs after Disc Error' to ESTOP whatever the box says (only the EL6900 honours it, and the editor
+        // warns when it is TRUE under an EL6910), so the model ignores this value and always behaves as TRUE
 END_STRUCT
 END_TYPE
 ]]></Declaration>

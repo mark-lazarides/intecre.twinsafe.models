@@ -8,6 +8,8 @@
 // Sequence (two sensors: parallel inputs, or sequential with MutingIn3/4 unconnected):
 //   S1 on, S2 on, OSSD blocked, S1 off, OSSD clear, S2 off
 // Any other change of a sensor or the OSSD during a sequence violates it (diagnostic bit 6).
+// The Safety Editor refuses an EDM reset time that is not 0 ms, a multiple of 10 ms and at most 60000 ms:
+// the model then reports Error with diagnostic bit 15 instead of running (see T_SafeFunctionBlockBase).
 {attribute 'reflection'}
 FUNCTION_BLOCK T_SafeMuting EXTENDS T_SafeFunctionBlockBase
 VAR_INPUT
@@ -72,6 +74,23 @@ END_VAR
       <ST><![CDATA[SUPER^();
 ]]></ST>
     </Implementation>
+    <Method Name="ConfigurationOk" Id="{cd71b28b-b388-4c4b-beca-1ed156c0ce9e}">
+      <Declaration><![CDATA[// The EDM reset times must be 0 ms or a multiple of 10 ms up to 60000 ms (Safety Editor: "'Reset Time' parameter ... has to be 0 ms or a multiple of 10 ms and maximal 60000 ms").
+METHOD PROTECTED ConfigurationOk : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT F_SafeResetTimeOk(Parameters.Edm1ResetTime) THEN
+    _configurationFault := 'T_SafeMuting: $'Reset Time$' parameter of EDM1 of MUTING has to be 0 ms or a multiple of 10 ms and maximal 60000 ms';
+    RETURN;
+ELSIF NOT F_SafeResetTimeOk(Parameters.Edm2ResetTime) THEN
+    _configurationFault := 'T_SafeMuting: $'Reset Time$' parameter of EDM2 of MUTING has to be 0 ms or a multiple of 10 ms and maximal 60000 ms';
+    RETURN;
+END_IF
+
+ConfigurationOk := TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="Actual" Id="{b1008007-dc85-5d18-b908-2f519b691261}">
       <Declaration><![CDATA[METHOD PRIVATE Actual : BOOL
 VAR_INPUT

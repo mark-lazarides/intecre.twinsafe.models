@@ -48,6 +48,9 @@
     <Compile Include="Core\F_NormaliseSafeInput.TcPOU">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Core\F_SafeResetTimeOk.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Core\F_SafeInputValue.TcPOU">
       <SubType>Code</SubType>
     </Compile>
@@ -193,6 +196,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="FunctionBlocks\T_SafeXor.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Params\SafeModelParams.TcGVL">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Project Information\F_GetCompany.TcPOU">
@@ -346,12 +352,17 @@
     <Folder Include="Examples" />
     <Folder Include="Examples\Example_UserFbs" />
     <Folder Include="FunctionBlocks" />
+    <Folder Include="Params" />
     <Folder Include="Project Information" />
     <Folder Include="Tests" />
     <Folder Include="Tests\User_FB_Tests" />
     <Folder Include="Version" />
   </ItemGroup>
   <ItemGroup>
+    <PlaceholderReference Include="Intecre.Utilities">
+      <DefaultResolution>Intecre.Utilities, * (Intecre Ltd)</DefaultResolution>
+      <Namespace>Intecre_Utilities</Namespace>
+    </PlaceholderReference>
     <PlaceholderReference Include="Tc2_Standard">
       <DefaultResolution>Tc2_Standard, * (Beckhoff Automation GmbH)</DefaultResolution>
       <Namespace>Tc2_Standard</Namespace>
@@ -380,6 +391,9 @@
     </PlaceholderReference>
   </ItemGroup>
   <ItemGroup>
+    <PlaceholderResolution Include="Intecre.Utilities">
+      <Resolution>Intecre.Utilities, * (Intecre Ltd)</Resolution>
+    </PlaceholderResolution>
     <PlaceholderResolution Include="Tc2_Standard">
       <Resolution>Tc2_Standard, * (Beckhoff Automation GmbH)</Resolution>
     </PlaceholderResolution>

@@ -785,6 +785,36 @@ Test_ConnectionStartupAndComError();
             <v n="DestPinId">47L</v>
             <v n="Id">81L</v>
           </o>
+          <o t="CFCInputElement">
+            <o n="Output" t="CFCOutputPin">
+              <v n="Bounds">"0, 0, 0, 0"</v>
+              <n n="ElementGroupId" />
+              <v n="Negated">false</v>
+              <v n="SetReset" t="SetReset">None</v>
+              <v n="SetResetRef" t="SetResetRef">None</v>
+              <v n="PretendsToBeConnected">false</v>
+              <v n="Id">145L</v>
+            </o>
+            <o n="Text" t="CFCText">
+              <v n="Bounds">"0, 0, 0, 0"</v>
+              <n n="ElementGroupId" />
+              <v n="Text">"TRUE"</v>
+              <v n="Modifiable">true</v>
+              <v n="Id">146L</v>
+            </o>
+            <v n="PageArea">3</v>
+            <v n="Bounds">"2, 21, 0, 0"</v>
+            <n n="ElementGroupId" />
+            <v n="OwningPageId">-1L</v>
+            <v n="Id">147L</v>
+          </o>
+          <o t="CFCConnection">
+            <v n="Bounds">"0, 0, 0, 0"</v>
+            <n n="ElementGroupId" />
+            <v n="SourcePinId">145L</v>
+            <v n="DestPinId">48L</v>
+            <v n="Id">148L</v>
+          </o>
           <o t="CFCBoxElement">
             <o n="Inputs" t="CFCItemList">
               <l2 n="InnerList" cet="CFCInputPin">
@@ -2171,6 +2201,36 @@ Test_ConnectionStartupAndComError();
             <v n="DestPinId">47L</v>
             <v n="Id">81L</v>
           </o>
+          <o t="CFCInputElement">
+            <o n="Output" t="CFCOutputPin">
+              <v n="Bounds">"0, 0, 0, 0"</v>
+              <n n="ElementGroupId" />
+              <v n="Negated">false</v>
+              <v n="SetReset" t="SetReset">None</v>
+              <v n="SetResetRef" t="SetResetRef">None</v>
+              <v n="PretendsToBeConnected">false</v>
+              <v n="Id">217L</v>
+            </o>
+            <o n="Text" t="CFCText">
+              <v n="Bounds">"0, 0, 0, 0"</v>
+              <n n="ElementGroupId" />
+              <v n="Text">"TRUE"</v>
+              <v n="Modifiable">true</v>
+              <v n="Id">218L</v>
+            </o>
+            <v n="PageArea">3</v>
+            <v n="Bounds">"2, 21, 0, 0"</v>
+            <n n="ElementGroupId" />
+            <v n="OwningPageId">-1L</v>
+            <v n="Id">219L</v>
+          </o>
+          <o t="CFCConnection">
+            <v n="Bounds">"0, 0, 0, 0"</v>
+            <n n="ElementGroupId" />
+            <v n="SourcePinId">217L</v>
+            <v n="DestPinId">48L</v>
+            <v n="Id">220L</v>
+          </o>
           <o t="CFCBoxElement">
             <o n="Inputs" t="CFCItemList">
               <l2 n="InnerList" cet="CFCInputPin">
@@ -2812,6 +2872,36 @@ Test_ConnectionStartupAndComError();
             <v n="SourcePinId">150L</v>
             <v n="DestPinId">119L</v>
             <v n="Id">153L</v>
+          </o>
+          <o t="CFCInputElement">
+            <o n="Output" t="CFCOutputPin">
+              <v n="Bounds">"0, 0, 0, 0"</v>
+              <n n="ElementGroupId" />
+              <v n="Negated">false</v>
+              <v n="SetReset" t="SetReset">None</v>
+              <v n="SetResetRef" t="SetResetRef">None</v>
+              <v n="PretendsToBeConnected">false</v>
+              <v n="Id">221L</v>
+            </o>
+            <o n="Text" t="CFCText">
+              <v n="Bounds">"0, 0, 0, 0"</v>
+              <n n="ElementGroupId" />
+              <v n="Text">"TRUE"</v>
+              <v n="Modifiable">true</v>
+              <v n="Id">222L</v>
+            </o>
+            <v n="PageArea">3</v>
+            <v n="Bounds">"2, 46, 0, 0"</v>
+            <n n="ElementGroupId" />
+            <v n="OwningPageId">-1L</v>
+            <v n="Id">223L</v>
+          </o>
+          <o t="CFCConnection">
+            <v n="Bounds">"0, 0, 0, 0"</v>
+            <n n="ElementGroupId" />
+            <v n="SourcePinId">221L</v>
+            <v n="DestPinId">120L</v>
+            <v n="Id">224L</v>
           </o>
           <o t="CFCBoxElement">
             <o n="Inputs" t="CFCItemList">
@@ -4655,6 +4745,36 @@ Test_ConnectionStartupAndComError();
             <v n="DestPinId">98L</v>
             <v n="Id">132L</v>
           </o>
+          <o t="CFCInputElement">
+            <o n="Output" t="CFCOutputPin">
+              <v n="Bounds">"0, 0, 0, 0"</v>
+              <n n="ElementGroupId" />
+              <v n="Negated">false</v>
+              <v n="SetReset" t="SetReset">None</v>
+              <v n="SetResetRef" t="SetResetRef">None</v>
+              <v n="PretendsToBeConnected">false</v>
+              <v n="Id">1183L</v>
+            </o>
+            <o n="Text" t="CFCText">
+              <v n="Bounds">"0, 0, 0, 0"</v>
+              <n n="ElementGroupId" />
+              <v n="Text">"TRUE"</v>
+              <v n="Modifiable">true</v>
+              <v n="Id">1184L</v>
+            </o>
+            <v n="PageArea">3</v>
+            <v n="Bounds">"2, 36, 0, 0"</v>
+            <n n="ElementGroupId" />
+            <v n="OwningPageId">-1L</v>
+            <v n="Id">1185L</v>
+          </o>
+          <o t="CFCConnection">
+            <v n="Bounds">"0, 0, 0, 0"</v>
+            <n n="ElementGroupId" />
+            <v n="SourcePinId">1183L</v>
+            <v n="DestPinId">99L</v>
+            <v n="Id">1186L</v>
+          </o>
           <o t="CFCBoxElement">
             <o n="Inputs" t="CFCItemList">
               <l2 n="InnerList" cet="CFCInputPin">
@@ -5752,6 +5872,36 @@ Test_ConnectionStartupAndComError();
             <v n="SourcePinId">252L</v>
             <v n="DestPinId">221L</v>
             <v n="Id">255L</v>
+          </o>
+          <o t="CFCInputElement">
+            <o n="Output" t="CFCOutputPin">
+              <v n="Bounds">"0, 0, 0, 0"</v>
+              <n n="ElementGroupId" />
+              <v n="Negated">false</v>
+              <v n="SetReset" t="SetReset">None</v>
+              <v n="SetResetRef" t="SetResetRef">None</v>
+              <v n="PretendsToBeConnected">false</v>
+              <v n="Id">1187L</v>
+            </o>
+            <o n="Text" t="CFCText">
+              <v n="Bounds">"0, 0, 0, 0"</v>
+              <n n="ElementGroupId" />
+              <v n="Text">"TRUE"</v>
+              <v n="Modifiable">true</v>
+              <v n="Id">1188L</v>
+            </o>
+            <v n="PageArea">3</v>
+            <v n="Bounds">"2, 76, 0, 0"</v>
+            <n n="ElementGroupId" />
+            <v n="OwningPageId">-1L</v>
+            <v n="Id">1189L</v>
+          </o>
+          <o t="CFCConnection">
+            <v n="Bounds">"0, 0, 0, 0"</v>
+            <n n="ElementGroupId" />
+            <v n="SourcePinId">1187L</v>
+            <v n="DestPinId">222L</v>
+            <v n="Id">1190L</v>
           </o>
           <o t="CFCBoxElement">
             <o n="Inputs" t="CFCItemList">
@@ -7017,6 +7167,36 @@ Test_ConnectionStartupAndComError();
             <v n="DestPinId">362L</v>
             <v n="Id">396L</v>
           </o>
+          <o t="CFCInputElement">
+            <o n="Output" t="CFCOutputPin">
+              <v n="Bounds">"0, 0, 0, 0"</v>
+              <n n="ElementGroupId" />
+              <v n="Negated">false</v>
+              <v n="SetReset" t="SetReset">None</v>
+              <v n="SetResetRef" t="SetResetRef">None</v>
+              <v n="PretendsToBeConnected">false</v>
+              <v n="Id">1191L</v>
+            </o>
+            <o n="Text" t="CFCText">
+              <v n="Bounds">"0, 0, 0, 0"</v>
+              <n n="ElementGroupId" />
+              <v n="Text">"TRUE"</v>
+              <v n="Modifiable">true</v>
+              <v n="Id">1192L</v>
+            </o>
+            <v n="PageArea">3</v>
+            <v n="Bounds">"2, 116, 0, 0"</v>
+            <n n="ElementGroupId" />
+            <v n="OwningPageId">-1L</v>
+            <v n="Id">1193L</v>
+          </o>
+          <o t="CFCConnection">
+            <v n="Bounds">"0, 0, 0, 0"</v>
+            <n n="ElementGroupId" />
+            <v n="SourcePinId">1191L</v>
+            <v n="DestPinId">363L</v>
+            <v n="Id">1194L</v>
+          </o>
           <o t="CFCBoxElement">
             <o n="Inputs" t="CFCItemList">
               <l2 n="InnerList" cet="CFCInputPin">
@@ -8114,6 +8294,36 @@ Test_ConnectionStartupAndComError();
             <v n="SourcePinId">516L</v>
             <v n="DestPinId">485L</v>
             <v n="Id">519L</v>
+          </o>
+          <o t="CFCInputElement">
+            <o n="Output" t="CFCOutputPin">
+              <v n="Bounds">"0, 0, 0, 0"</v>
+              <n n="ElementGroupId" />
+              <v n="Negated">false</v>
+              <v n="SetReset" t="SetReset">None</v>
+              <v n="SetResetRef" t="SetResetRef">None</v>
+              <v n="PretendsToBeConnected">false</v>
+              <v n="Id">1195L</v>
+            </o>
+            <o n="Text" t="CFCText">
+              <v n="Bounds">"0, 0, 0, 0"</v>
+              <n n="ElementGroupId" />
+              <v n="Text">"TRUE"</v>
+              <v n="Modifiable">true</v>
+              <v n="Id">1196L</v>
+            </o>
+            <v n="PageArea">3</v>
+            <v n="Bounds">"2, 156, 0, 0"</v>
+            <n n="ElementGroupId" />
+            <v n="OwningPageId">-1L</v>
+            <v n="Id">1197L</v>
+          </o>
+          <o t="CFCConnection">
+            <v n="Bounds">"0, 0, 0, 0"</v>
+            <n n="ElementGroupId" />
+            <v n="SourcePinId">1195L</v>
+            <v n="DestPinId">486L</v>
+            <v n="Id">1198L</v>
           </o>
           <o t="CFCBoxElement">
             <o n="Inputs" t="CFCItemList">
@@ -10043,6 +10253,36 @@ Test_ConnectionStartupAndComError();
             <v n="DestPinId">698L</v>
             <v n="Id">732L</v>
           </o>
+          <o t="CFCInputElement">
+            <o n="Output" t="CFCOutputPin">
+              <v n="Bounds">"0, 0, 0, 0"</v>
+              <n n="ElementGroupId" />
+              <v n="Negated">false</v>
+              <v n="SetReset" t="SetReset">None</v>
+              <v n="SetResetRef" t="SetResetRef">None</v>
+              <v n="PretendsToBeConnected">false</v>
+              <v n="Id">1199L</v>
+            </o>
+            <o n="Text" t="CFCText">
+              <v n="Bounds">"0, 0, 0, 0"</v>
+              <n n="ElementGroupId" />
+              <v n="Text">"TRUE"</v>
+              <v n="Modifiable">true</v>
+              <v n="Id">1200L</v>
+            </o>
+            <v n="PageArea">3</v>
+            <v n="Bounds">"2, 210, 0, 0"</v>
+            <n n="ElementGroupId" />
+            <v n="OwningPageId">-1L</v>
+            <v n="Id">1201L</v>
+          </o>
+          <o t="CFCConnection">
+            <v n="Bounds">"0, 0, 0, 0"</v>
+            <n n="ElementGroupId" />
+            <v n="SourcePinId">1199L</v>
+            <v n="DestPinId">699L</v>
+            <v n="Id">1202L</v>
+          </o>
           <o t="CFCBoxElement">
             <o n="Inputs" t="CFCItemList">
               <l2 n="InnerList" cet="CFCInputPin">
@@ -11140,6 +11380,36 @@ Test_ConnectionStartupAndComError();
             <v n="SourcePinId">852L</v>
             <v n="DestPinId">821L</v>
             <v n="Id">855L</v>
+          </o>
+          <o t="CFCInputElement">
+            <o n="Output" t="CFCOutputPin">
+              <v n="Bounds">"0, 0, 0, 0"</v>
+              <n n="ElementGroupId" />
+              <v n="Negated">false</v>
+              <v n="SetReset" t="SetReset">None</v>
+              <v n="SetResetRef" t="SetResetRef">None</v>
+              <v n="PretendsToBeConnected">false</v>
+              <v n="Id">1203L</v>
+            </o>
+            <o n="Text" t="CFCText">
+              <v n="Bounds">"0, 0, 0, 0"</v>
+              <n n="ElementGroupId" />
+              <v n="Text">"TRUE"</v>
+              <v n="Modifiable">true</v>
+              <v n="Id">1204L</v>
+            </o>
+            <v n="PageArea">3</v>
+            <v n="Bounds">"2, 250, 0, 0"</v>
+            <n n="ElementGroupId" />
+            <v n="OwningPageId">-1L</v>
+            <v n="Id">1205L</v>
+          </o>
+          <o t="CFCConnection">
+            <v n="Bounds">"0, 0, 0, 0"</v>
+            <n n="ElementGroupId" />
+            <v n="SourcePinId">1203L</v>
+            <v n="DestPinId">822L</v>
+            <v n="Id">1206L</v>
           </o>
           <o t="CFCBoxElement">
             <o n="Inputs" t="CFCItemList">
@@ -12405,6 +12675,36 @@ Test_ConnectionStartupAndComError();
             <v n="DestPinId">962L</v>
             <v n="Id">996L</v>
           </o>
+          <o t="CFCInputElement">
+            <o n="Output" t="CFCOutputPin">
+              <v n="Bounds">"0, 0, 0, 0"</v>
+              <n n="ElementGroupId" />
+              <v n="Negated">false</v>
+              <v n="SetReset" t="SetReset">None</v>
+              <v n="SetResetRef" t="SetResetRef">None</v>
+              <v n="PretendsToBeConnected">false</v>
+              <v n="Id">1207L</v>
+            </o>
+            <o n="Text" t="CFCText">
+              <v n="Bounds">"0, 0, 0, 0"</v>
+              <n n="ElementGroupId" />
+              <v n="Text">"TRUE"</v>
+              <v n="Modifiable">true</v>
+              <v n="Id">1208L</v>
+            </o>
+            <v n="PageArea">3</v>
+            <v n="Bounds">"2, 290, 0, 0"</v>
+            <n n="ElementGroupId" />
+            <v n="OwningPageId">-1L</v>
+            <v n="Id">1209L</v>
+          </o>
+          <o t="CFCConnection">
+            <v n="Bounds">"0, 0, 0, 0"</v>
+            <n n="ElementGroupId" />
+            <v n="SourcePinId">1207L</v>
+            <v n="DestPinId">963L</v>
+            <v n="Id">1210L</v>
+          </o>
           <o t="CFCBoxElement">
             <o n="Inputs" t="CFCItemList">
               <l2 n="InnerList" cet="CFCInputPin">
@@ -13502,6 +13802,36 @@ Test_ConnectionStartupAndComError();
             <v n="SourcePinId">1116L</v>
             <v n="DestPinId">1085L</v>
             <v n="Id">1119L</v>
+          </o>
+          <o t="CFCInputElement">
+            <o n="Output" t="CFCOutputPin">
+              <v n="Bounds">"0, 0, 0, 0"</v>
+              <n n="ElementGroupId" />
+              <v n="Negated">false</v>
+              <v n="SetReset" t="SetReset">None</v>
+              <v n="SetResetRef" t="SetResetRef">None</v>
+              <v n="PretendsToBeConnected">false</v>
+              <v n="Id">1211L</v>
+            </o>
+            <o n="Text" t="CFCText">
+              <v n="Bounds">"0, 0, 0, 0"</v>
+              <n n="ElementGroupId" />
+              <v n="Text">"TRUE"</v>
+              <v n="Modifiable">true</v>
+              <v n="Id">1212L</v>
+            </o>
+            <v n="PageArea">3</v>
+            <v n="Bounds">"2, 330, 0, 0"</v>
+            <n n="ElementGroupId" />
+            <v n="OwningPageId">-1L</v>
+            <v n="Id">1213L</v>
+          </o>
+          <o t="CFCConnection">
+            <v n="Bounds">"0, 0, 0, 0"</v>
+            <n n="ElementGroupId" />
+            <v n="SourcePinId">1211L</v>
+            <v n="DestPinId">1086L</v>
+            <v n="Id">1214L</v>
           </o>
           <o t="CFCBoxElement">
             <o n="Inputs" t="CFCItemList">

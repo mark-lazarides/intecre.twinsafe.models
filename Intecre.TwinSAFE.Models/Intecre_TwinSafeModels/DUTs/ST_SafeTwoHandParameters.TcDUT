@@ -12,7 +12,9 @@ STRUCT
     DiscrepancyTime1 : TIME; // Twohand1 / Twohand2
     DiscrepancyTime2 : TIME; // Twohand3 / Twohand4
     HandDiscrepancyTime : TIME; // max time between actuation of the two hands (max 2500 ms). T#0S disables
-    SafeInputsAfterDiscError : BOOL := TRUE;
+    SafeInputsAfterDiscError : BOOL; // Safety Editor checkbox 'Safe Inputs after Disc Error', FALSE for a new block:
+        // TRUE makes both channels of the pair that raised a discrepancy error return to the safe state together
+        // before ErrAck can clear it
 END_STRUCT
 END_TYPE
 ]]></Declaration>

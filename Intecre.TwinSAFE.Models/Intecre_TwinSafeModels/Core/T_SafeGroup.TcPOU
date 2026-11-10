@@ -5,6 +5,9 @@
 // Function blocks and connections join the group at construction (FB_init group reference) and the
 // group reads their outputs, so nothing needs wiring beyond the standard PLC signals.
 // Call the group before its members each cycle. Declare the group before its members.
+// RaiseOnRefusedConfiguration (default SafeModelParams.RAISE_ON_REFUSED_CONFIGURATION) makes a member
+// whose configuration the Safety Editor refuses stop the controller with F_RaiseException after it has
+// reported Error; see T_SafeFunctionBlockBase.
 FUNCTION_BLOCK T_SafeGroup
 VAR_INPUT
     Run : BOOL := TRUE; // Run/Stop. Link to a standard PLC variable.
@@ -42,6 +45,7 @@ VAR
     _anyComError : BOOL;
     _anyComStartup : BOOL;
     _anyError : BOOL;
+    _raiseOnRefusedConfiguration : BOOL := SafeModelParams.RAISE_ON_REFUSED_CONFIGURATION;
 END_VAR
 ]]></Declaration>
     <Implementation>
@@ -179,6 +183,31 @@ END_VAR
 ]]></ST>
         </Implementation>
       </Get>
+    </Property>
+    <Property Name="RaiseOnRefusedConfiguration" Id="{4640705e-95c4-4d11-aab3-9fead340d51e}">
+      <Declaration><![CDATA[// TRUE: a member whose configuration the TwinSAFE Safety Editor refuses raises RTSEXCPT_IO_CONFIG_ERROR
+// (F_RaiseException) after reporting Error, so the controller stops unless the call is in a __TRY block.
+// Starts at SafeModelParams.RAISE_ON_REFUSED_CONFIGURATION; set it per group from project code or a test.
+PROPERTY RaiseOnRefusedConfiguration : BOOL
+]]></Declaration>
+      <Get Name="Get" Id="{d4f68f1a-2cc8-4be8-89b5-91302e7d0857}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[RaiseOnRefusedConfiguration := _raiseOnRefusedConfiguration;
+]]></ST>
+        </Implementation>
+      </Get>
+      <Set Name="Set" Id="{fdcbb8ac-718c-404d-8302-08292773be5c}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[_raiseOnRefusedConfiguration := RaiseOnRefusedConfiguration;
+]]></ST>
+        </Implementation>
+      </Set>
     </Property>
     <Method Name="RegisterConnection" Id="{21a69469-e7f6-5244-9f49-ce1043f3e713}">
       <Declaration><![CDATA[// Called by T_SafeConnection.FB_init. Not part of the public interface.

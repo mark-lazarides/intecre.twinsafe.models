@@ -4,6 +4,9 @@
     <Declaration><![CDATA[// Model of the TwinSAFE FB MON (safety door / guard monitoring).
 // Two MonIn pairs, a Secure pair that bypasses them, manual restart (when Restart is connected),
 // manual function test, two EDM feedback loops and a delayed output.
+// The Safety Editor refuses a MON with no MonIn port connected, or an EDM reset time that is not 0 ms,
+// a multiple of 10 ms and at most 60000 ms: the model then reports Error with diagnostic bit 15
+// instead of running (see T_SafeFunctionBlockBase).
 {attribute 'reflection'}
 FUNCTION_BLOCK T_SafeMon EXTENDS T_SafeFunctionBlockBase
 VAR_INPUT
@@ -58,6 +61,26 @@ END_VAR
       <ST><![CDATA[SUPER^();
 ]]></ST>
     </Implementation>
+    <Method Name="ConfigurationOk" Id="{fc0c33f6-86c1-4e96-88d4-e0751d907b79}">
+      <Declaration><![CDATA[// At least one MonIn port must be connected and the EDM reset times must be 0 ms or a multiple of 10 ms up to 60000 ms (Safety Editor messages).
+METHOD PROTECTED ConfigurationOk : BOOL
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT (_monIn1Connected OR _monIn2Connected OR _monIn3Connected OR _monIn4Connected) THEN
+    _configurationFault := 'T_SafeMon: MON does not have at least 1 MonIn(x) port active and connected';
+    RETURN;
+ELSIF NOT F_SafeResetTimeOk(Parameters.Edm1ResetTime) THEN
+    _configurationFault := 'T_SafeMon: $'Reset Time$' parameter of EDM1 of MON has to be 0 ms or a multiple of 10 ms and maximal 60000 ms';
+    RETURN;
+ELSIF NOT F_SafeResetTimeOk(Parameters.Edm2ResetTime) THEN
+    _configurationFault := 'T_SafeMon: $'Reset Time$' parameter of EDM2 of MON has to be 0 ms or a multiple of 10 ms and maximal 60000 ms';
+    RETURN;
+END_IF
+
+ConfigurationOk := TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="EdmInputsOk" Id="{1b103a2b-707f-5b03-a929-899cb09b3bd2}">
       <Declaration><![CDATA[// Checks the EDM inputs at restart and records diagnostic bits 4/5 on failure.
 METHOD PRIVATE EdmInputsOk : BOOL

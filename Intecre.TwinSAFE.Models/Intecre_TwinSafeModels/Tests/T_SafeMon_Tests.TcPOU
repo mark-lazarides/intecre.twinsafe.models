@@ -15,6 +15,12 @@ VAR
     // Test_EdmFaultWithoutManualRestartStaysSafe
     group_4 : T_SafeGroup;
     fb_4 : T_SafeMon(group := group_4);
+    // Test_NoMonInConnectedIsRefused
+    group_5 : T_SafeGroup;
+    fb_5 : T_SafeMon(group := group_5);
+    // Test_ResetTimeNotMultipleOfTenIsRefused
+    group_6 : T_SafeGroup;
+    fb_6 : T_SafeMon(group := group_6) := (Parameters := (Edm1ResetTime := T#15MS));
 END_VAR
 ]]></Declaration>
     <Implementation>
@@ -22,6 +28,8 @@ END_VAR
 Test_SecureInputBypassesGuard();
 Test_ManualFunctionTestRequiresGuardOpenedOnce();
 Test_EdmFaultWithoutManualRestartStaysSafe();
+Test_NoMonInConnectedIsRefused();
+Test_ResetTimeNotMultipleOfTenIsRefused();
 ]]></ST>
     </Implementation>
     <Method Name="Test_AutomaticRestartWhenGuardClosed" Id="{7f7524c0-8cb8-53ff-8d3a-e39d36e3ba99}">
@@ -105,6 +113,64 @@ AssertEquals_BOOL(Expected := TRUE, Actual := fb_2.MonOut, Message := 'guard ign
 group_2(Run := TRUE);
 fb_2(MonIn1 := FALSE, Secure1 := FALSE);
 AssertEquals_BOOL(Expected := FALSE, Actual := fb_2.MonOut, Message := 'guard monitored again when Secure is 0');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_NoMonInConnectedIsRefused" Id="{0e51c03a-757d-4eeb-8e11-d119df2c4072}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_NoMonInConnectedIsRefused
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// arrange / act: only the Secure pair is connected, which the Safety Editor refuses
+group_5(Run := TRUE);
+fb_5(Secure1 := TRUE);
+group_5(Run := TRUE);
+fb_5(Secure1 := TRUE);
+// assert
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_5.Error, Message := 'configuration error reported');
+AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Error), Actual := fb_5.State, Message := 'state ERROR');
+AssertEquals_WORD(Expected := WORD#16#8000, Actual := fb_5.Diag, Message := 'diag bit 15 configuration refused');
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_5.MonOut, Message := 'MonOut stays at its safe value');
+AssertEquals_BOOL(Expected := TRUE, Actual := group_5.FbErr, Message := 'the group sees an FB error');
+// act: ErrAck 0 -> 1 -> 0 does not clear a configuration error
+group_5(Run := TRUE, ErrAck := TRUE);
+fb_5(Secure1 := TRUE);
+group_5(Run := TRUE, ErrAck := TRUE);
+fb_5(Secure1 := TRUE);
+group_5(Run := TRUE, ErrAck := FALSE);
+fb_5(Secure1 := TRUE);
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_5.Error, Message := 'error not acknowledged');
+AssertEquals_WORD(Expected := WORD#16#8000, Actual := fb_5.Diag, Message := 'diag bit 15 kept');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_ResetTimeNotMultipleOfTenIsRefused" Id="{e61b8ec8-e7bb-4d34-aa76-4458974c248a}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_ResetTimeNotMultipleOfTenIsRefused
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// arrange / act: Edm1ResetTime is 15 ms, which the Safety Editor refuses
+group_6(Run := TRUE);
+fb_6(EDM1 := TRUE, MonIn1 := TRUE);
+group_6(Run := TRUE);
+fb_6(EDM1 := TRUE, MonIn1 := TRUE);
+// assert
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_6.Error, Message := 'configuration error reported');
+AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Error), Actual := fb_6.State, Message := 'state ERROR');
+AssertEquals_WORD(Expected := WORD#16#8000, Actual := fb_6.Diag, Message := 'diag bit 15 configuration refused');
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_6.MonOut, Message := 'MonOut stays at its safe value');
+AssertEquals_BOOL(Expected := TRUE, Actual := group_6.FbErr, Message := 'the group sees an FB error');
+// act: ErrAck 0 -> 1 -> 0 does not clear a configuration error
+group_6(Run := TRUE, ErrAck := TRUE);
+fb_6(EDM1 := TRUE, MonIn1 := TRUE);
+group_6(Run := TRUE, ErrAck := TRUE);
+fb_6(EDM1 := TRUE, MonIn1 := TRUE);
+group_6(Run := TRUE, ErrAck := FALSE);
+fb_6(EDM1 := TRUE, MonIn1 := TRUE);
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_6.Error, Message := 'error not acknowledged');
+AssertEquals_WORD(Expected := WORD#16#8000, Actual := fb_6.Diag, Message := 'diag bit 15 kept');
 TEST_FINISHED_NAMED(__POUNAME());
 ]]></ST>
       </Implementation>

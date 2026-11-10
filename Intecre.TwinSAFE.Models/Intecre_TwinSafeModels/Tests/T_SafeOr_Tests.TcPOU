@@ -9,11 +9,15 @@ VAR
     // Test_AllFalseGivesSafe
     group_2 : T_SafeGroup;
     fb_2 : T_SafeOr(group := group_2);
+    // Test_OneConnectedInputIsRefused
+    group_3 : T_SafeGroup;
+    fb_3 : T_SafeOr(group := group_3);
 END_VAR
 ]]></Declaration>
     <Implementation>
       <ST><![CDATA[Test_AnyConnectedInputTrueGivesRun();
 Test_AllFalseGivesSafe();
+Test_OneConnectedInputIsRefused();
 ]]></ST>
     </Implementation>
     <Method Name="Test_AllFalseGivesSafe" Id="{7edfe92d-179f-53fa-be6a-5be0f61c49b9}">
@@ -41,6 +45,35 @@ group_1(Run := TRUE);
 fb_1(OrIn1 := FALSE, OrIn2 := TRUE);
 // assert
 AssertEquals_BOOL(Expected := TRUE, Actual := fb_1.OrOut, Message := 'output on when any connected input is 1');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_OneConnectedInputIsRefused" Id="{a50db1bc-ec9d-4e63-bba1-7dce482328e2}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_OneConnectedInputIsRefused
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// arrange / act: OrIn1 is the only connected input, which the Safety Editor refuses
+group_3(Run := TRUE);
+fb_3(OrIn1 := TRUE);
+group_3(Run := TRUE);
+fb_3(OrIn1 := TRUE);
+// assert
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_3.Error, Message := 'configuration error reported');
+AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Error), Actual := fb_3.State, Message := 'state ERROR');
+AssertEquals_WORD(Expected := WORD#16#8000, Actual := fb_3.Diag, Message := 'diag bit 15 configuration refused');
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_3.OrOut, Message := 'OrOut stays at its safe value');
+AssertEquals_BOOL(Expected := TRUE, Actual := group_3.FbErr, Message := 'the group sees an FB error');
+// act: ErrAck 0 -> 1 -> 0 does not clear a configuration error
+group_3(Run := TRUE, ErrAck := TRUE);
+fb_3(OrIn1 := TRUE);
+group_3(Run := TRUE, ErrAck := TRUE);
+fb_3(OrIn1 := TRUE);
+group_3(Run := TRUE, ErrAck := FALSE);
+fb_3(OrIn1 := TRUE);
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_3.Error, Message := 'error not acknowledged');
+AssertEquals_WORD(Expected := WORD#16#8000, Actual := fb_3.Diag, Message := 'diag bit 15 kept');
 TEST_FINISHED_NAMED(__POUNAME());
 ]]></ST>
       </Implementation>

@@ -22,7 +22,9 @@ STRUCT
     Edm2ResetTime : TIME;
     BackwardsMode : BOOL; // EL6910: sequence may also run from the last sensor to the first
     OssdCheckOptional : BOOL; // EL6910: protective device is not part of the sequence check
-    SafeInputsAfterDiscError : BOOL := TRUE;
+    SafeInputsAfterDiscError : BOOL; // Safety Editor checkbox 'Safe Inputs after Disc Error', FALSE for a new block:
+        // TRUE makes both channels of the pair that raised a discrepancy error return to the safe state together
+        // before ErrAck can clear it
 END_STRUCT
 END_TYPE
 ]]></Declaration>

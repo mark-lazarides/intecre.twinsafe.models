@@ -2,6 +2,10 @@
 <TcPlcObject Version="1.1.0.1">
   <DUT Name="E_SafeFbState" Id="{5d9e015e-1809-5153-8717-63aca5596788}">
     <Declaration><![CDATA[// TwinSAFE function block state codes shared by most FBs (Map State value).
+// Error is also the state of a block whose configuration the TwinSAFE Safety Editor refuses (too few
+// inputs connected, a required input unwired, an invalid EDM reset time): the block then sets Error,
+// diagnostic bit 15 (16#8000), which no TwinSAFE FB uses, and stays in Error through every ErrAck.
+// See T_SafeFunctionBlockBase.
 {attribute 'qualified_only'}
 {attribute 'to_string'}
 TYPE

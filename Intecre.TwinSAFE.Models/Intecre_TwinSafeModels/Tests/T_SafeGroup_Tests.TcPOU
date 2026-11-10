@@ -110,18 +110,18 @@ END_CASE
 // arrange: an AND that runs and an ESTOP that will raise an EDM error
 group_3(Run := TRUE, ErrAck := FALSE);
 eStop_3(Restart := FALSE, EDM1 := FALSE, EStopIn1 := TRUE);
-andFb_3(AndIn1 := TRUE);
+andFb_3(AndIn1 := TRUE, AndIn2 := TRUE);
 group_3(Run := TRUE, ErrAck := FALSE);
 eStop_3(Restart := FALSE, EDM1 := FALSE, EStopIn1 := TRUE);
-andFb_3(AndIn1 := TRUE);
+andFb_3(AndIn1 := TRUE, AndIn2 := TRUE);
 AssertEquals_BOOL(Expected := TRUE, Actual := andFb_3.AndOut, Message := 'AND running before the error');
 // act: restart with missing feedback -> FB error
 group_3(Run := TRUE, ErrAck := FALSE);
 eStop_3(Restart := TRUE, EDM1 := FALSE, EStopIn1 := TRUE);
-andFb_3(AndIn1 := TRUE);
+andFb_3(AndIn1 := TRUE, AndIn2 := TRUE);
 group_3(Run := TRUE, ErrAck := FALSE);
 eStop_3(Restart := FALSE, EDM1 := FALSE, EStopIn1 := TRUE);
-andFb_3(AndIn1 := TRUE);
+andFb_3(AndIn1 := TRUE, AndIn2 := TRUE);
 // assert
 AssertEquals_BOOL(Expected := TRUE, Actual := group_3.FbErr, Message := 'FbErr');
 AssertEquals_BYTE(Expected := TO_BYTE(E_SafeGroupState.Error), Actual := group_3.State, Message := 'group ERROR');
@@ -131,17 +131,17 @@ AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Stop), Actual := andFb_3.Sta
 // act: ErrAck 0 -> 1 -> 0
 group_3(Run := TRUE, ErrAck := TRUE);
 eStop_3(Restart := FALSE, EDM1 := FALSE, EStopIn1 := TRUE);
-andFb_3(AndIn1 := TRUE);
+andFb_3(AndIn1 := TRUE, AndIn2 := TRUE);
 group_3(Run := TRUE, ErrAck := TRUE);
 eStop_3(Restart := FALSE, EDM1 := FALSE, EStopIn1 := TRUE);
-andFb_3(AndIn1 := TRUE);
+andFb_3(AndIn1 := TRUE, AndIn2 := TRUE);
 AssertEquals_BYTE(Expected := TO_BYTE(E_SafeGroupState.Reset), Actual := group_3.State, Message := 'group RESET while ErrAck 1');
 group_3(Run := TRUE, ErrAck := FALSE);
 eStop_3(Restart := FALSE, EDM1 := FALSE, EStopIn1 := TRUE);
-andFb_3(AndIn1 := TRUE);
+andFb_3(AndIn1 := TRUE, AndIn2 := TRUE);
 group_3(Run := TRUE, ErrAck := FALSE);
 eStop_3(Restart := FALSE, EDM1 := FALSE, EStopIn1 := TRUE);
-andFb_3(AndIn1 := TRUE);
+andFb_3(AndIn1 := TRUE, AndIn2 := TRUE);
 AssertEquals_BYTE(Expected := TO_BYTE(E_SafeGroupState.Run), Actual := group_3.State, Message := 'group RUN after ErrAck');
 AssertEquals_BOOL(Expected := TRUE, Actual := andFb_3.AndOut, Message := 'AND running again');
 AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Safe), Actual := eStop_3.State, Message := 'ESTOP back in SAFE awaiting restart');
@@ -156,9 +156,9 @@ TEST_FINISHED_NAMED(__POUNAME());
         <ST><![CDATA[TcUnit.TEST(__POUNAME());
 // act
 group_2(Run := TRUE);
-fb_2(AndIn1 := TRUE);
+fb_2(AndIn1 := TRUE, AndIn2 := TRUE);
 group_2(Run := TRUE);
-fb_2(AndIn1 := TRUE);
+fb_2(AndIn1 := TRUE, AndIn2 := TRUE);
 // assert
 AssertEquals_BYTE(Expected := TO_BYTE(E_SafeGroupState.Run), Actual := group_2.State, Message := 'group RUN');
 AssertEquals_BOOL(Expected := TRUE, Actual := fb_2.AndOut, Message := 'FB executed');
@@ -174,7 +174,7 @@ TEST_FINISHED_NAMED(__POUNAME());
         <ST><![CDATA[TcUnit.TEST(__POUNAME());
 // act
 group_1(Run := FALSE);
-fb_1(AndIn1 := TRUE);
+fb_1(AndIn1 := TRUE, AndIn2 := TRUE);
 // assert
 AssertEquals_BYTE(Expected := TO_BYTE(E_SafeGroupState.Stop), Actual := group_1.State, Message := 'group STOP');
 AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Stop), Actual := fb_1.State, Message := 'FB STOP');

@@ -1,4 +1,4 @@
-# Intecre.TwinSAFE.Models
+﻿# Intecre.TwinSAFE.Models
 
 **Functional models of the Beckhoff TwinSAFE logic function blocks and the TwinSAFE group, for a standard TwinCAT 3 PLC.**
 
@@ -19,6 +19,7 @@ Build and trial a safety application, and the standard-PLC code that talks to it
   - [User function blocks](#user-function-blocks)
 - [Standard PLC interface](#standard-plc-interface)
 - [Input configuration](#input-configuration)
+- [What the Safety Editor refuses](#what-the-safety-editor-refuses)
 - [Test hooks](#test-hooks)
 - [Behaviour notes and assumptions](#behaviour-notes-and-assumptions)
 - [Tests](#tests)
@@ -33,7 +34,7 @@ Build and trial a safety application, and the standard-PLC code that talks to it
 |---|---|
 | TwinCAT | 3.1 build 4026 |
 | Library version | 0.4.4.0 |
-| Libraries | `TcUnit, * (www.tcunit.org)`, `Tc2_Standard`, `Tc2_System`, `Tc3_Module` |
+| Libraries | `TcUnit, * (www.tcunit.org)`, `Intecre.Utilities, * (Intecre Ltd)` (4.1.0.0 or later, for the logger and `T_NamedBase`; no TcPkg package carries it yet, so the `Intecre.TwinSAFE.Models` package does not pull it in: install it by hand), `Tc2_Standard`, `Tc2_System`, `Tc3_Module` |
 
 ### Use it
 
@@ -71,6 +72,7 @@ Intecre.TwinSAFE.Models/                 TwinCAT solution project (tsproj)
     Core/                                group, connection, terminal models, FB base class, helpers
     DUTs/                                state / diag enums and parameter structs
     FunctionBlocks/                      one T_Safe* FB per TwinSAFE FB
+    Params/                              SafeModelParams, the library parameter list (RAISE_ON_REFUSED_CONFIGURATION)
     Tests/                               TcUnit suites in ST (T_*_Tests) and CFC (T_*_Tests_CFC), T_SafeCfcTestSuite, PRG_TestRunner
       User_FB_Tests/                     suites for the example user FBs (T_*_UserFB_Tests and their CFC twins)
     Examples/                            PRG_EStopExample (ST) and PRG_EStopExample_CFC (same wiring in CFC)
@@ -210,6 +212,28 @@ A port's *Active* setting is its wiring (`is_connected`). *Contact type* is the 
 
 `T_SafeInputPair` implements the discrepancy monitoring and the *Safe Inputs after Disc Error* rule (both channels must have been in the safe state together before the error can be acknowledged; diag bit 8+ is set while that is outstanding).
 
+## What the Safety Editor refuses
+
+The Safety Editor's project-level verify rejects some wirings and parameter values that a plain function block would happily run with, and it only checks the blocks inside a user FB once an instance of that user FB sits in a group, so the mistake surfaces late. The models apply the same rules, so a chart the editor will reject fails in simulation first.
+
+| Blocks | Rule | Editor message |
+|---|---|---|
+| `T_SafeAnd`, `T_SafeOr` | at least two inputs connected | `<block> does not have at least 2 input ports active and connected` |
+| `T_SafeOpMode` | at least two `OpIn` connected | `<block> does not have at least 2 input ports connected` |
+| `T_SafeMon` | at least one of `MonIn1..4` connected | `<block> does not have at least 1 MonIn(x) port active and connected` |
+| `T_SafeSr`, `T_SafeRs`, `T_SafeTon`, `T_SafeTof`, `T_SafeEdm` | every input connected | `Inport Set of <block> must be connected` |
+| `T_SafeMon`, `T_SafeEStop`, `T_SafeMuting` | `Edm1ResetTime`, `Edm2ResetTime` are 0 ms or a multiple of 10 ms, at most 60000 ms | `'Reset Time' parameter ... has to be 0 ms or a multiple of 10 ms and maximal 60000 ms` |
+
+A one-input AND used as an inverter is the common case: the editor refuses it, so the model does too.
+
+A block that breaks a rule runs as a stopped block (outputs at their safe value), reports `Error` with `State` = 4 (ERROR) and **diagnostic bit 15** (`Diag` = `16#8000`, a bit no TwinSAFE FB uses), and its group goes to ERROR like for any FB error. `ErrAck` does not clear it: a configuration error cannot be acknowledged away, only rewired. The fault is logged once per instance through the `Intecre.Utilities` logger (`F_LogError`) as `<program.suite.instance>: <block type>: <editor's rule> (the TwinSAFE Safety Editor refuses this configuration)`, for example `PRG_TestRunner.safeAndTests.fb_5: T_SafeAnd: AND does not have at least 2 input ports active and connected (the TwinSAFE Safety Editor refuses this configuration)` as the TwinCAT log of the test run shows it, so it shows in the TwinCAT log of a simulation run once the project has switched the logger on: `Intecre.Utilities` logs nothing by default (`LogConfig.LogLevel` starts at `None`), so set `LogConfig.LogLevel := E_LogSeverity.Error` (or a lower level) in the project, as `PRG_TestRunner` does. The instance path comes from a private `T_NamedBase` member of the base class (its own `._log` segment trimmed off), so the blocks keep their pins-only public surface.
+
+The check is `T_SafeFunctionBlockBase.ConfigurationOk`, called before `Process` every cycle; a block with a rule overrides it. A [user function block](#user-function-blocks) can override it as well to add rules of its own.
+
+**Stopping hard.** With `T_SafeGroup.RaiseOnRefusedConfiguration` TRUE, a member of that group that breaks a rule also raises `RTSEXCPT_IO_CONFIG_ERROR` with `F_RaiseException` (Tc2_System) after it has reported the error, so a simulation stops on the first cycle with the fault in the event log. The property starts at the library parameter `SafeModelParams.RAISE_ON_REFUSED_CONFIGURATION` (default FALSE), which a project sets for all its groups in the Library Manager's parameter view without rebuilding the library; project code or a test sets the property per group (`safeGroup.RaiseOnRefusedConfiguration := TRUE;`). A parameter list has to be constant, so the per-group property is what a test switches for one call. A block that has no group yet follows the library parameter. A test can assert the refusal by making the call inside `__TRY` and checking in `__CATCH` that an exception arrived (TwinCAT 3.1 4024 on 32-bit, 4026 on 64-bit runtimes); `T_SafeAnd_Tests.Test_RaiseOnRefusedConfigurationStopsHard` does exactly that. The code does not survive the trip: on the 4026 x64 usermode runtime `__CATCH` received `16#E8940001`, a TwinCAT value the documentation does not list, instead of `RTSEXCPT_IO_CONFIG_ERROR`, so match on the block's `Error` and `Diag` rather than on the caught code. Beckhoff warns that on x86 (32-bit) targets an intercepted exception caused by a floating-point operation can leave the system in an unrecoverable state; the models raise no floating-point exception, but keep floating-point code out of your own `__TRY` blocks on x86.
+
+Not covered: the editor's rule for XOR is unknown (the manual gives none), so `T_SafeXor` accepts any wiring, and the manual does not require an `EStopIn` on ESTOP, so `T_SafeEStop` is checked for its reset times only. The CFC twins carry no copies of the configuration tests.
+
 ## Test hooks
 
 - `InjectComError` (rising edge) on `T_SafeConnection` and the terminals simulates an FSoE error with `InjectErrorCode` (default watchdog).
@@ -278,7 +302,7 @@ Where the manual is explicit the models follow it. Where it is silent the follow
 
 ## Tests
 
-`PRG_TestRunner` runs 42 TcUnit suites: one ST suite (`T_*_Tests`) and one CFC twin (`T_*_Tests_CFC`) for each of the 16 function blocks, `T_SafeGroup`, `T_SafeConnection`, `T_SafeInputPair` and the two example user FBs (55 tests each side, 110 in total), plus ST suites for the EL1918 and EL2912 terminal models (8 tests). The terminal models are plain connections with a channel copy, so they have no CFC twins; the EL1904 model is exercised by the group suites. The CFC suites exercise the blocks the way a TwinSAFE project is authored: each test method is a diagram with the calls down the middle in execution order and, beside each call, the asserts that check it, their `Actual` pins wired straight from the block's output pins as a TwinSAFE network would be wired. The methods use explicit execution order (the sequence the boxes were placed in), so a timed test that calls the same block several times in one diagram runs its calls and asserts in the order written; in auto data flow mode the editor reorders wired boxes and those tests assert at the wrong moment. Timed tests use chained `TON` timers and `R_TRIG` one-shots on the `EN` of the assert boxes instead of the ST `CASE` state machines, so the two versions of a timed test are equivalent rather than identical.
+`PRG_TestRunner` runs 42 TcUnit suites: one ST suite (`T_*_Tests`) and one CFC twin (`T_*_Tests_CFC`) for each of the 16 function blocks, `T_SafeGroup`, `T_SafeConnection`, `T_SafeInputPair` and the two example user FBs (70 tests on the ST side, 55 on the CFC side, 125 in total), plus ST suites for the EL1918 and EL2912 terminal models (9 tests). The 13 extra ST tests check the configurations the Safety Editor refuses (see [What the Safety Editor refuses](#what-the-safety-editor-refuses)); they have no CFC twins. The terminal models are plain connections with a channel copy, so they have no CFC twins; the EL1904 model is exercised by the group suites. The CFC suites exercise the blocks the way a TwinSAFE project is authored: each test method is a diagram with the calls down the middle in execution order and, beside each call, the asserts that check it, their `Actual` pins wired straight from the block's output pins as a TwinSAFE network would be wired. The methods use explicit execution order (the sequence the boxes were placed in), so a timed test that calls the same block several times in one diagram runs its calls and asserts in the order written; in auto data flow mode the editor reorders wired boxes and those tests assert at the wrong moment. Timed tests use chained `TON` timers and `R_TRIG` one-shots on the `EN` of the assert boxes instead of the ST `CASE` state machines, so the two versions of a timed test are equivalent rather than identical.
 
 The CFC suites extend `T_SafeCfcTestSuite` rather than `TcUnit.FB_TestSuite` directly. TcUnit's `TEST` and `TEST_FINISHED_NAMED` are functions without a return type, and a CFC box for a function must carry a return pin, so that small base class wraps them as the methods `StartTest` and `FinishTest` that the diagrams call.
 
@@ -294,6 +318,7 @@ Blocks use the `T_` prefix, private members `_camelCase`, and state machines use
 
 | Version | Date | Changes |
 |---|---|---|
+| 0.5.0.0 | 2026-11-10 | The models refuse the configurations the Safety Editor refuses (see [What the Safety Editor refuses](#what-the-safety-editor-refuses)): `T_SafeFunctionBlockBase.ConfigurationOk`, diagnostic bit 15, a log line through the `Intecre.Utilities` logger (new reference) with the instance path from a private `T_NamedBase` member and the opt-in hard stop (`T_SafeGroup.RaiseOnRefusedConfiguration`, default from the library parameter `SafeModelParams.RAISE_ON_REFUSED_CONFIGURATION`). 13 ST tests; the one-input ANDs in the AND and group suites now have two inputs. `SafeInputsAfterDiscError` now defaults to FALSE in every parameter struct, like the Safety Editor's checkbox for a new block; ESTOP ignores it and always applies the function, as the EL6910 does (before, every struct defaulted to TRUE). New reference `Intecre.Utilities`. All 134 TcUnit tests pass on the TwinCAT 3.1 4026 x64 usermode runtime (2026-11-10). |
 | 0.4.4.0 | 2026-10-29 | A safe output terminal passes its `SafeOut` values only while its connection is in Data and its group is in RUN (`T_SafeConnection.OutputsEnabled`): a group in STOP or ERROR switches every output of the group off, as the EL6910 does, even for a value wired straight from an input to an output. Before, that reaction existed only through the blocks stopping, so a direct wire kept its output on. One terminal test. |
 | 0.4.3.0 | 2026-10-29 | `T_SafeGroup` holds 256 function blocks and 64 connections (was 64 and 32: a simulated group of door functions had passed the cap and most of its blocks could not put the group in error), and its new `RegistrationRefused` output shows a member that could not join. Two group tests. |
 | 0.4.2.0 | 2026-10-22 | `T_SafeFunctionBlockBase` sets `State` to Run or Stop from the group before `Process`, so a composite without states of its own reports Run to its group without any `State` logic in its chart. The example user FBs drop the `IsRunning` AND that the base body overwrote; their suites assert `IsRunning`. |

@@ -31,6 +31,9 @@ VAR
     fb_8 : T_SafeEStop(group := group_8) := (Parameters := (DiscrepancyTime1 := T#100MS));
     state_8 : INT := 10;
     waitTimer_8 : TON;
+    // Test_ResetTimeOverSixtySecondsIsRefused
+    group_9 : T_SafeGroup;
+    fb_9 : T_SafeEStop(group := group_9) := (Parameters := (Edm2ResetTime := T#60010MS));
 END_VAR
 ]]></Declaration>
     <Implementation>
@@ -42,6 +45,7 @@ Test_EdmErrorAtRestartAndAcknowledge();
 Test_RestartHeldBeforeEStopGivesEdmError();
 Test_DelayedOutput();
 Test_DiscrepancyErrorNeedsSafeInputsBeforeAck();
+Test_ResetTimeOverSixtySecondsIsRefused();
 ]]></ST>
     </Implementation>
     <Method Name="Test_DelayedOutput" Id="{7cc00979-ab9e-5fac-8b44-5dd874bd27b8}">
@@ -278,6 +282,35 @@ fb_2(Restart := FALSE, EStopIn1 := TRUE, EStopIn2 := TRUE);
 AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Run), Actual := fb_2.State, Message := 'state RUN after falling edge');
 AssertEquals_BOOL(Expected := TRUE, Actual := fb_2.EStopOut, Message := 'EStopOut on');
 AssertEquals_BOOL(Expected := TRUE, Actual := fb_2.EStopDelOut, Message := 'EStopDelOut on');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_ResetTimeOverSixtySecondsIsRefused" Id="{c36ad239-9f95-4f1a-b02e-f64290dd8946}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_ResetTimeOverSixtySecondsIsRefused
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// arrange / act: Edm2ResetTime is 60010 ms, which the Safety Editor refuses
+group_9(Run := TRUE);
+fb_9(EDM2 := TRUE, EStopIn1 := TRUE);
+group_9(Run := TRUE);
+fb_9(EDM2 := TRUE, EStopIn1 := TRUE);
+// assert
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_9.Error, Message := 'configuration error reported');
+AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Error), Actual := fb_9.State, Message := 'state ERROR');
+AssertEquals_WORD(Expected := WORD#16#8000, Actual := fb_9.Diag, Message := 'diag bit 15 configuration refused');
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_9.EStopOut, Message := 'EStopOut stays at its safe value');
+AssertEquals_BOOL(Expected := TRUE, Actual := group_9.FbErr, Message := 'the group sees an FB error');
+// act: ErrAck 0 -> 1 -> 0 does not clear a configuration error
+group_9(Run := TRUE, ErrAck := TRUE);
+fb_9(EDM2 := TRUE, EStopIn1 := TRUE);
+group_9(Run := TRUE, ErrAck := TRUE);
+fb_9(EDM2 := TRUE, EStopIn1 := TRUE);
+group_9(Run := TRUE, ErrAck := FALSE);
+fb_9(EDM2 := TRUE, EStopIn1 := TRUE);
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_9.Error, Message := 'error not acknowledged');
+AssertEquals_WORD(Expected := WORD#16#8000, Actual := fb_9.Diag, Message := 'diag bit 15 kept');
 TEST_FINISHED_NAMED(__POUNAME());
 ]]></ST>
       </Implementation>

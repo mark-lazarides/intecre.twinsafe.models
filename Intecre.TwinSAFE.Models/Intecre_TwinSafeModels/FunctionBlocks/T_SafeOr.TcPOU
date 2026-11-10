@@ -2,6 +2,8 @@
 <TcPlcObject Version="1.1.0.1">
   <POU Name="T_SafeOr" Id="{172c71ab-ec3d-5ccc-91c3-374336b4d74f}" SpecialFunc="None">
     <Declaration><![CDATA[// Model of the TwinSAFE FB OR. Connected inputs are active.
+// The Safety Editor refuses an OR with fewer than two OrIn ports connected: the model then reports
+// Error with diagnostic bit 15 instead of running (see T_SafeFunctionBlockBase).
 {attribute 'reflection'}
 FUNCTION_BLOCK T_SafeOr EXTENDS T_SafeFunctionBlockBase
 VAR_INPUT
@@ -42,6 +44,32 @@ END_VAR
       <ST><![CDATA[SUPER^();
 ]]></ST>
     </Implementation>
+    <Method Name="ConfigurationOk" Id="{b1fe103e-5756-4f48-95e1-ae3f8a72473d}">
+      <Declaration><![CDATA[// At least two OrIn ports must be connected (Safety Editor: "OR does not have at least 2 input ports active and connected").
+METHOD PROTECTED ConfigurationOk : BOOL
+VAR
+    connectedInputs : USINT;
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[connectedInputs := BOOL_TO_USINT(_orIn1Connected)
+    + BOOL_TO_USINT(_orIn2Connected)
+    + BOOL_TO_USINT(_orIn3Connected)
+    + BOOL_TO_USINT(_orIn4Connected)
+    + BOOL_TO_USINT(_orIn5Connected)
+    + BOOL_TO_USINT(_orIn6Connected)
+    + BOOL_TO_USINT(_orIn7Connected)
+    + BOOL_TO_USINT(_orIn8Connected);
+
+IF connectedInputs < 2 THEN
+    _configurationFault := 'T_SafeOr: OR does not have at least 2 input ports active and connected';
+    RETURN;
+END_IF
+
+ConfigurationOk := TRUE;
+]]></ST>
+      </Implementation>
+    </Method>
     <Method Name="Process" Id="{6d72b5e1-d040-529f-8c8f-d3c7e840ffaf}">
       <Declaration><![CDATA[METHOD PROTECTED Process
 VAR

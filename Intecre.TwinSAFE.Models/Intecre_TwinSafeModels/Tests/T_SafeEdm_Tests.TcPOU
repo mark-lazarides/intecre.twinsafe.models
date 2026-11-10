@@ -13,11 +13,15 @@ VAR
     fb_2 : T_SafeEdm(group := group_2) := (Parameters := (SwitchOnTime := T#100MS, SwitchOffTime := T#100MS));
     state_2 : INT := 10;
     waitTimer_2 : TON;
+    // Test_UnconnectedMon2IsRefused
+    group_3 : T_SafeGroup;
+    fb_3 : T_SafeEdm(group := group_3);
 END_VAR
 ]]></Declaration>
     <Implementation>
       <ST><![CDATA[Test_SwitchOnTimeoutGivesError();
 Test_NoErrorWhenFeedbackFollows();
+Test_UnconnectedMon2IsRefused();
 ]]></ST>
     </Implementation>
     <Method Name="Test_NoErrorWhenFeedbackFollows" Id="{f2724108-6ac0-5bcf-aebf-75a90bedea1a}">
@@ -95,6 +99,34 @@ CASE state_1 OF
         TEST_FINISHED_NAMED(__POUNAME());
         state_1 := 10;
 END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_UnconnectedMon2IsRefused" Id="{642c47b7-14e9-4e70-93e9-57e3579a934e}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_UnconnectedMon2IsRefused
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// arrange / act: Mon2 is unconnected, which the Safety Editor refuses
+group_3(Run := TRUE);
+fb_3(Mon1 := TRUE);
+group_3(Run := TRUE);
+fb_3(Mon1 := TRUE);
+// assert
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_3.Error, Message := 'configuration error reported');
+AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Error), Actual := fb_3.State, Message := 'state ERROR');
+AssertEquals_WORD(Expected := WORD#16#8000, Actual := fb_3.Diag, Message := 'diag bit 15 configuration refused');
+AssertEquals_BOOL(Expected := TRUE, Actual := group_3.FbErr, Message := 'the group sees an FB error');
+// act: ErrAck 0 -> 1 -> 0 does not clear a configuration error
+group_3(Run := TRUE, ErrAck := TRUE);
+fb_3(Mon1 := TRUE);
+group_3(Run := TRUE, ErrAck := TRUE);
+fb_3(Mon1 := TRUE);
+group_3(Run := TRUE, ErrAck := FALSE);
+fb_3(Mon1 := TRUE);
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_3.Error, Message := 'error not acknowledged');
+AssertEquals_WORD(Expected := WORD#16#8000, Actual := fb_3.Diag, Message := 'diag bit 15 kept');
+TEST_FINISHED_NAMED(__POUNAME());
 ]]></ST>
       </Implementation>
     </Method>

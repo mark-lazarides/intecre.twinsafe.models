@@ -18,7 +18,9 @@ STRUCT
     Edm1ResetTime : TIME;
     Edm2ResetTime : TIME;
     ManualFunctionTest : BOOL; // every connected MonIn pair must request the safe state once after start
-    SafeInputsAfterDiscError : BOOL := TRUE;
+    SafeInputsAfterDiscError : BOOL; // Safety Editor checkbox 'Safe Inputs after Disc Error', FALSE for a new block:
+        // TRUE makes both channels of the pair that raised a discrepancy error return to the safe state together
+        // before ErrAck can clear it
 END_STRUCT
 END_TYPE
 ]]></Declaration>

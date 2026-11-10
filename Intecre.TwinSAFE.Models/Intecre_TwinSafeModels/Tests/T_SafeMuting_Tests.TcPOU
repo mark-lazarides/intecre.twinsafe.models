@@ -15,6 +15,9 @@ VAR
     // Test_TwoSensorParallelSequence
     group_4 : T_SafeGroup;
     fb_4 : T_SafeMuting(group := group_4);
+    // Test_ResetTimeNotMultipleOfTenIsRefused
+    group_5 : T_SafeGroup;
+    fb_5 : T_SafeMuting(group := group_5) := (Parameters := (Edm1ResetTime := T#25MS));
 END_VAR
 ]]></Declaration>
     <Implementation>
@@ -22,6 +25,7 @@ END_VAR
 Test_SequentialMutingKeepsOutputOn();
 Test_SequenceViolationGivesError();
 Test_TwoSensorParallelSequence();
+Test_ResetTimeNotMultipleOfTenIsRefused();
 ]]></ST>
     </Implementation>
     <Method Name="Test_OssdBlockedWithoutMutingGivesSafe" Id="{53af24ac-e7d4-5870-b8e6-91c27b55d90e}">
@@ -334,6 +338,35 @@ fb_4(
 // assert
 AssertEquals_BYTE(Expected := TO_BYTE(E_SafeMutingState.Run), Actual := fb_4.State, Message := 'RUN after the sequence');
 AssertEquals_BOOL(Expected := FALSE, Actual := fb_4.Error, Message := 'no error');
+TEST_FINISHED_NAMED(__POUNAME());
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_ResetTimeNotMultipleOfTenIsRefused" Id="{0e5c1c2f-a8ca-4146-8f07-da2a2a06bd60}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_ResetTimeNotMultipleOfTenIsRefused
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// arrange / act: Edm1ResetTime is 25 ms, which the Safety Editor refuses
+group_5(Run := TRUE);
+fb_5(EDM1 := TRUE, OSSDIn1 := TRUE);
+group_5(Run := TRUE);
+fb_5(EDM1 := TRUE, OSSDIn1 := TRUE);
+// assert
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_5.Error, Message := 'configuration error reported');
+AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Error), Actual := fb_5.State, Message := 'state ERROR');
+AssertEquals_WORD(Expected := WORD#16#8000, Actual := fb_5.Diag, Message := 'diag bit 15 configuration refused');
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_5.MuteOut, Message := 'MuteOut stays at its safe value');
+AssertEquals_BOOL(Expected := TRUE, Actual := group_5.FbErr, Message := 'the group sees an FB error');
+// act: ErrAck 0 -> 1 -> 0 does not clear a configuration error
+group_5(Run := TRUE, ErrAck := TRUE);
+fb_5(EDM1 := TRUE, OSSDIn1 := TRUE);
+group_5(Run := TRUE, ErrAck := TRUE);
+fb_5(EDM1 := TRUE, OSSDIn1 := TRUE);
+group_5(Run := TRUE, ErrAck := FALSE);
+fb_5(EDM1 := TRUE, OSSDIn1 := TRUE);
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_5.Error, Message := 'error not acknowledged');
+AssertEquals_WORD(Expected := WORD#16#8000, Actual := fb_5.Diag, Message := 'diag bit 15 kept');
 TEST_FINISHED_NAMED(__POUNAME());
 ]]></ST>
       </Implementation>

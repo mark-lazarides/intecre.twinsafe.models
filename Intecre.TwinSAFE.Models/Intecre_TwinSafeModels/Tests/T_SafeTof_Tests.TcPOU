@@ -8,10 +8,14 @@ VAR
     fb_1 : T_SafeTof(group := group_1) := (Parameters := (DelayTime := T#100MS));
     state_1 : INT := 10;
     waitTimer_1 : TON;
+    // Test_UnconnectedInputIsRefused
+    group_2 : T_SafeGroup;
+    fb_2 : T_SafeTof(group := group_2);
 END_VAR
 ]]></Declaration>
     <Implementation>
       <ST><![CDATA[Test_OutputDelayedOff();
+Test_UnconnectedInputIsRefused();
 ]]></ST>
     </Implementation>
     <Method Name="Test_OutputDelayedOff" Id="{b6d59bd9-12c1-5814-8994-2d4710fe2757}">
@@ -46,6 +50,35 @@ CASE state_1 OF
         TEST_FINISHED_NAMED(__POUNAME());
         state_1 := 10;
 END_CASE
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="Test_UnconnectedInputIsRefused" Id="{41898d87-9230-466f-8ce4-e67e6830cca2}">
+      <Declaration><![CDATA[METHOD PRIVATE Test_UnconnectedInputIsRefused
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[TcUnit.TEST(__POUNAME());
+// arrange / act: TofIn1 is unconnected, which the Safety Editor refuses
+group_2(Run := TRUE);
+fb_2();
+group_2(Run := TRUE);
+fb_2();
+// assert
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_2.Error, Message := 'configuration error reported');
+AssertEquals_BYTE(Expected := TO_BYTE(E_SafeFbState.Error), Actual := fb_2.State, Message := 'state ERROR');
+AssertEquals_WORD(Expected := WORD#16#8000, Actual := fb_2.Diag, Message := 'diag bit 15 configuration refused');
+AssertEquals_BOOL(Expected := FALSE, Actual := fb_2.TofOut, Message := 'TofOut stays at its safe value');
+AssertEquals_BOOL(Expected := TRUE, Actual := group_2.FbErr, Message := 'the group sees an FB error');
+// act: ErrAck 0 -> 1 -> 0 does not clear a configuration error
+group_2(Run := TRUE, ErrAck := TRUE);
+fb_2();
+group_2(Run := TRUE, ErrAck := TRUE);
+fb_2();
+group_2(Run := TRUE, ErrAck := FALSE);
+fb_2();
+AssertEquals_BOOL(Expected := TRUE, Actual := fb_2.Error, Message := 'error not acknowledged');
+AssertEquals_WORD(Expected := WORD#16#8000, Actual := fb_2.Diag, Message := 'diag bit 15 kept');
+TEST_FINISHED_NAMED(__POUNAME());
 ]]></ST>
       </Implementation>
     </Method>
