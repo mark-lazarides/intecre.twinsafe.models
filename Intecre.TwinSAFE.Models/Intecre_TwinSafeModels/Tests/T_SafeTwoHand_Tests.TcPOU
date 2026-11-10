@@ -11,7 +11,8 @@ VAR
     fb_2 : T_SafeTwoHand(group := group_2);
     // Test_HandDiscrepancyTimeout
     group_3 : T_SafeGroup;
-    fb_3 : T_SafeTwoHand(group := group_3) := (Parameters := (HandDiscrepancyTime := T#100MS));
+    // SafeInputsAfterDiscError TRUE (not the default) so the error waits for both hands released (diag bit 10)
+    fb_3 : T_SafeTwoHand(group := group_3) := (Parameters := (HandDiscrepancyTime := T#100MS, SafeInputsAfterDiscError := TRUE));
     state_3 : INT := 10;
     waitTimer_3 : TON;
 END_VAR
