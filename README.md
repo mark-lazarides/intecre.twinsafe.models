@@ -16,6 +16,7 @@ Build and trial a safety application, and the standard-PLC code that talks to it
 - [Getting started](#getting-started)
 - [What is modelled](#what-is-modelled)
 - [How the pieces fit together](#how-the-pieces-fit-together)
+  - [Networks](#networks)
   - [User function blocks](#user-function-blocks)
 - [Standard PLC interface](#standard-plc-interface)
 - [Input configuration](#input-configuration)
@@ -136,6 +137,22 @@ outputTerminal(SafeOut1 := eStop.EStopOut);
 ```
 
 `PRG_EStopExample` is a runnable version of this with a simulated contactor feedback loop, and `PRG_EStopExample_CFC` is the same program drawn in CFC, the closest standard-PLC equivalent of the Safety Editor: one box per block, wired pin to pin, with the group standing alone because membership is fixed at declaration. The screenshot at the top of this page shows a larger application drawn the same way.
+
+### Networks
+
+A TwinSAFE group is drawn as a set of numbered networks. CFC has no network element, so model each network as its own method of the program that holds the group, with the network number and purpose in the name, and have the program body call the group and then the networks in order:
+
+```iecst
+group(Run := plcSafetyRun, ErrAck := plcSafetyErrAck);
+Network_01_EStop();
+Network_02_ModeRequest();
+Network_03_Outputs();
+```
+
+- **One network, one method.** Each method is a CFC diagram of one Safety Editor network, so the diagrams stay the size of the networks they model and a reader, or a tool, finds the networks from the POU structure alone. Do not add a marker block to split one large diagram: a marker means something only through the execution order, which an *Execution Order* edit changes without any visible sign.
+- **Blocks stay in the program.** Declare the group, the terminals and the blocks in the program, not in the methods, so they keep their state and their group membership from cycle to cycle. A method's own `VAR` is temporary.
+- **Signals between networks** go through the program's variables, as they go through the group's local variables in TwinSAFE: one network writes a variable, or another network reads a block output by name (`eStop.EStopOut`). Either way the reader gets the value from the current cycle if the writing network runs before it, and from the previous cycle if it runs after.
+- **Order within a network** follows the Safety Editor numbering: use explicit execution order in each method (right-click the CFC editor, *Execution Order*), as for [`T_SafeRTrig_UserFB`](#the-two-examples).
 
 ### User function blocks
 
